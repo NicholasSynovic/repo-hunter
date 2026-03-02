@@ -14,8 +14,13 @@ from joss.logger import JOSSLogger
 
 
 class JOSSTransform(TransformInterface):
-    def __init__(self, joss_logger: JOSSLogger) -> None:
+    def __init__(
+        self,
+        joss_logger: JOSSLogger,
+        resolve_joss_url: bool = False,
+    ) -> None:
         self.logger: Logger = joss_logger.get_logger()
+        self.resolve_joss_url: bool = resolve_joss_url
 
     def normalize_joss_gh_issues(
         self,
@@ -51,10 +56,9 @@ class JOSSTransform(TransformInterface):
         return data
 
     @staticmethod
-    def _extract_github_repo_url(body: str) -> str:
+    def _extract_repo_url(body: str) -> str:
         data: str = ""
 
-        # This works for `editorialbot` created issues
         repo_match = re.search(
             r"<!--target-repository-->(.*?)<!--end-target-repository-->",
             body,
@@ -65,9 +69,7 @@ class JOSSTransform(TransformInterface):
             return data
 
         # This works for all other issues
-        repo_match = re.search(
-            r"\*\*Repository:\*\*.*?(https://github\.com/[\w\-/]+)", body
-        )
+        repo_match = re.search(r"\*\*Repository:\*\*.*?(https?://[^\s\"<>]+)", body)
 
         return repo_match.group(1).strip() if repo_match else ""
 
@@ -75,7 +77,7 @@ class JOSSTransform(TransformInterface):
     def _extract_joss_url(body: str) -> str:
         # JOSS URL from status badge: [![status](...)](URL)
         joss_url_match = re.search(
-            r"\[!\[status\]\([^)]+\)\]\((https://joss\.theoj\.org/papers/[^)]+)\)",
+            r"\[!\[status\]\([^)]+\)\]\((https?://joss\.theoj\.org/papers/[^)]+)\)",
             body,
         )
         return joss_url_match.group(1) if joss_url_match else ""
@@ -127,33 +129,25 @@ class JOSSTransform(TransformInterface):
                     bar.next()
                     continue
 
-                # If not authored by `editorialbot`, ignore
-                # if issue.creator != "editorialbot":
-                #     self.logger.warning(
-                #         "Skipped issue #%d because it's not authored by `editorialbot`",
-                #         issue.id,
-                #     )
-                #     bar.next()
-                #     continue
-
                 # If not GitHub Repo URL is present, ignore
-                github_repo_url: str = self._extract_github_repo_url(
+                github_repo_url: str = self._extract_repo_url(
                     body=issue.body,
                 )
                 if github_repo_url == "":
                     self.logger.warning(
-                        "Skipped issue #%d because no GitHub Repo URL is present",
+                        "Skipped issue #%d because repository URL is present",
                         issue.id,
                     )
                     bar.next()
                     continue
 
                 joss_url: str = self._extract_joss_url(body=issue.body)
-
                 joss_resolved_url: str = ""
+
                 if "accepted" in issue.labels:
                     if joss_url != "":  # Positive case, all checks pass
-                        joss_resolved_url = self._resolve_joss_url(url=joss_url)
+                        if self.resolve_joss_url:
+                            joss_resolved_url = self._resolve_joss_url(url=joss_url)
                     else:
                         self.logger.warning(
                             "Skipped issue #%d because no JOSS URL is present",

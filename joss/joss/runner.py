@@ -6,9 +6,17 @@ from joss.logger import JOSSLogger
 
 
 class JOSSRunner:
-    def __init__(self, joss_logger: JOSSLogger, db: DB) -> None:
+    def __init__(
+        self,
+        joss_logger: JOSSLogger,
+        db: DB,
+        resolve_urls: bool = False,
+    ) -> None:
         self.extract: JOSSExtract = JOSSExtract(joss_logger=joss_logger)
-        self.transform: JOSSTransform = JOSSTransform(joss_logger=joss_logger)
+        self.transform: JOSSTransform = JOSSTransform(
+            joss_logger=joss_logger,
+            resolve_joss_url=resolve_urls,
+        )
         self.load: JOSSLoad = JOSSLoad(joss_logger=joss_logger, db=db)
 
     def run(self) -> None:

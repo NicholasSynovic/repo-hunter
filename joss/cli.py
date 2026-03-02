@@ -73,6 +73,27 @@ class CLI:
         )
 
     @staticmethod
+    def add_resolve_urls_flag(
+        parser: argparse.ArgumentParser,
+        *,
+        required: bool = False,
+    ) -> None:
+        """
+        Add the ``--resolve-urls`` argument to a parser.
+
+        Args:
+            parser: The argument parser to augment.
+            required: Whether the argument is mandatory.
+
+        """
+        parser.add_argument(
+            "--resolve-urls",
+            required=required,
+            help="Resolve URLs (can take a while)",
+            action="store_true",
+        )
+
+    @staticmethod
     def get_token() -> str:
         """
         Read `GITHUB_TOKEN` from the environment.
@@ -121,6 +142,7 @@ class CLI:
             help="Get all Journal of Open Source Software (JOSS) projects.",
         )
         self.add_out_file_argument(parser=ingest_parser, required=True)
+        self.add_resolve_urls_flag(parser=ingest_parser, required=False)
 
         # Parse args
         return parser.parse_args()

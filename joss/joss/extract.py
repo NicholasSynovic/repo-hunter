@@ -2,10 +2,7 @@ from logging import Logger
 
 from fastcore.foundation import AttrDict, L
 from ghapi.all import GhApi
-from ghapi.graphql import GhGql
 from progress.spinner import Spinner
-from requests import post
-from requests.exceptions import RequestException
 
 from joss.interfaces import ExtractInterface
 from joss.joss import GITHUB_REPO_OWNER, GITHUB_REPO_PROJECT, HTTP_POST_TIMEOUT
@@ -22,7 +19,6 @@ class JOSSExtract(ExtractInterface):
             owner=GITHUB_REPO_OWNER,
             repo=GITHUB_REPO_PROJECT,
         )
-        self.ghgql: GhGql = GhGql()
 
     def __distill_fastcore(self, obj):
         """Recursively convert L and AttrDict to standard Python types."""
