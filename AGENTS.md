@@ -7,20 +7,14 @@ Instructions for agentic coding systems working in this Python project.
 ### Development Setup
 
 ```bash
-# Initial setup (installs pre-commit hooks and dependencies via uv)
-make create-dev
-
-# Full build (versions, builds distribution, installs package)
-make build
+make create-dev  # Initial setup (installs pre-commit hooks and dependencies via uv)
+make build       # Full build (versions, builds distribution, installs package)
 ```
 
 ### Linting and Formatting
 
-Pre-commit hooks enforce code quality. Run manually:
-
 ```bash
-# Run all pre-commit checks
-pre-commit run --all-files
+pre-commit run --all-files  # Run all pre-commit checks
 
 # Run on specific files
 pre-commit run ruff-check --files joss/utils.py joss/main.py
@@ -34,20 +28,11 @@ pre-commit run bandit --files joss/utils.py joss/main.py
 No test suite exists yet. When tests are added:
 
 ```bash
-# Run all tests
-pytest
-
-# Run a single test file
-pytest tests/test_parsers.py
-
-# Run a single test function
-pytest tests/test_parsers.py::test_parse_joss_issue
-
-# Run with coverage
-pytest --cov=joss --cov-report=term-missing
+pytest                                    # Run all tests
+pytest tests/test_parsers.py              # Single test file
+pytest tests/test_parsers.py::test_parse_joss_issue  # Single test function
+pytest --cov=joss --cov-report=term-missing  # With coverage
 ```
-
-Verify analysis scripts in `joss/analysis/` by running them manually.
 
 ## Code Style Guidelines
 
@@ -58,14 +43,14 @@ Verify analysis scripts in `joss/analysis/` by running them manually.
 ### Imports
 
 - **Order**: isort (Black profile), configured in `.isort.cfg`
-- **Line length**: 79 for import wrapping (matches `.isort.cfg`)
+- **Line length**: 79 for import wrapping
 - **Style**: Explicit absolute imports; no star imports
 - Separate groups with blank lines (stdlib → third-party → local)
 
 ### Formatting
 
 - **Formatter**: Ruff (`ruff format` via pre-commit)
-- **Line length**: follow Ruff defaults unless project config adds one
+- **Line length**: follow Ruff defaults
 - **Quotes**: Double quotes (`"string"`)
 - **Indentation**: 4 spaces
 - **Trailing commas**: Keep if formatter adds them
@@ -73,9 +58,8 @@ Verify analysis scripts in `joss/analysis/` by running them manually.
 ### Type Hints
 
 - **Mandatory**: All function parameters and returns must have type hints
-- **Style**: Modern syntax (`list[T]` not `List[T]`)
+- **Style**: Modern syntax (`list[T]` not `List[T]`, `int | str` not `Union[int, str]`)
 - **Returns**: Always specify, use `-> None` for void functions
-- **Unions**: Use `|` operator (e.g., `int | str`)
 - **Any**: `typing.Any` allowed only when necessary, use `# noqa: ANN401`
 
 ### Naming Conventions
@@ -91,7 +75,7 @@ Verify analysis scripts in `joss/analysis/` by running them manually.
 - **Module docstrings**: Required at top of file
 - **Public functions/methods**: Required docstrings
 - **Format**: Google-style with Args, Returns, Raises sections
-- Start multi-line docstrings on second line (not same line as quotes)
+- Start multi-line docstrings on second line
 
 ### Error Handling
 
@@ -130,45 +114,38 @@ Bandit runs via pre-commit on `*.py` files.
 ```text
 joss/
   ├── __init__.py          # APPLICATION_NAME constant
-  ├── main.py              # Entry point with subcommands
-  ├── cli.py               # CLI class with parser setup
-  ├── logger.py            # Logging utilities
-  ├── utils.py             # Shared utility functions
+  ├── main.py              # Entry point with CLI subcommands
+  ├── cli.py               # CLI argument parser
+  ├── db.py                # Database models and utilities
+  ├── logger.py            # Logging configuration
+  ├── utils.py             # Shared utilities
   ├── parsers.py           # Text parsing utilities
-  ├── analysis/            # Analysis scripts
-  ├── ingest/              # Data ingestion modules
-  └── transform/           # Data transformation modules
+  ├── interfaces.py        # Pydantic models for API data
+  ├── ecosystems/          # JOSS ecosystem data modules
+  │   ├── api/             # API client code
+  │   └── papers/          # Paper data handling
+  └── joss/                # Core ingestion/transform logic
+      ├── runner.py        # Main ingestion runner
+      ├── extract.py       # Data extraction
+      ├── transform.py     # Data transformations
+      └── load.py          # Data loading
 ```
 
 ## CLI Usage
 
 ```bash
-# Ingest GitHub issues (writes SQLite DB)
-joss joss --out-file joss.db
+joss joss --out-file joss.db  # Ingest GitHub issues (writes SQLite DB)
 ```
 
 ## Key Tools
 
-- **Build**: Hatchling
-- **Dependency manager**: uv
-- **Linter/Formatter**: Ruff v0.15.1
-- **Pre-commit**: v6.0.0
-- **Security**: Bandit v1.9.3
-- **Import sorting**: isort 7.0.0
+- **Build**: Hatchling | **Dependency manager**: uv
+- **Linter/Formatter**: Ruff v0.15.1 | **Pre-commit**: v6.0.0
+- **Security**: Bandit v1.9.3 | **Import sorting**: isort 7.0.0
 - **Data validation**: pydantic v2.12.5+
 
 ## Dependencies
 
-- **requests**: HTTP client for GitHub API
-- **pydantic**: Data validation
-- **progress**: Terminal spinners
-- **matplotlib**: Visualization
-- **seaborn**: Statistical visualization
-- **ghapi**: GitHub API wrapper
-- **sqlalchemy**: Database access
-- **pandas**: Dataframe transformations
-
-## Cursor/Copilot Rules
-
-No Cursor rules found in `.cursor/rules/` or `.cursorrules`.
-No Copilot instructions found in `.github/copilot-instructions.md`.
+- **requests**: HTTP client | **pydantic**: Data validation | **progress**: Terminal spinners
+- **matplotlib**: Visualization | **seaborn**: Statistical visualization
+- **ghapi**: GitHub API wrapper | **sqlalchemy**: Database access | **pandas**: Dataframes

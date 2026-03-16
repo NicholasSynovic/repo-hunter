@@ -73,6 +73,27 @@ class CLI:
         )
 
     @staticmethod
+    def add_email_argument(
+        parser: argparse.ArgumentParser,
+        *,
+        required: bool = True,
+    ) -> None:
+        """
+        Add the ``--email`` argument to a parser.
+
+        Args:
+            parser: The argument parser to augment.
+            required: Whether the argument is mandatory.
+
+        """
+        parser.add_argument(
+            "--email",
+            required=required,
+            help="Contact email sent to the Ecosyste.ms API mailto parameter.",
+            type=str,
+        )
+
+    @staticmethod
     def add_resolve_urls_flag(
         parser: argparse.ArgumentParser,
         *,
@@ -143,6 +164,13 @@ class CLI:
         )
         self.add_out_file_argument(parser=ingest_parser, required=True)
         self.add_resolve_urls_flag(parser=ingest_parser, required=False)
+
+        papers_parser = subparsers.add_parser(
+            "papers",
+            help="Get all Ecosyste.ms Papers projects.",
+        )
+        self.add_out_file_argument(parser=papers_parser, required=True)
+        self.add_email_argument(parser=papers_parser, required=True)
 
         # Parse args
         return parser.parse_args()

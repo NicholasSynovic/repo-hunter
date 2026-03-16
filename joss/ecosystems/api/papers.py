@@ -64,6 +64,7 @@ class PapersAPI:
         projects_api: str = f"https://papers.ecosyste.ms/api/v1/projects?page={self.project_page}&per_page={self.per_page}&mailto={self.email}"
         self.logger.info("Sending GET request to %s", projects_api)
         resp: Response = self.session.get(url=projects_api)
+        self.logger.debug("Response status code: %d", resp.status_code)
 
         self.total_project_pages = self._get_last_page(resp=resp)
         self.project_page += 1
@@ -72,7 +73,7 @@ class PapersAPI:
 
     def get_mentions_from_project(self, project_mention_url: str) -> list:
         # Shortcut to prohibit excessive API calling
-        if self.project_page > self.total_project_pages:
+        if self.mention_page > self.total_mention_pages:
             self.logger.error(
                 "Mentions API page count exceeds that of the total number of pages: %d, %d",
                 self.mention_page,
