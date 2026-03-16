@@ -84,11 +84,13 @@ class PapersAPI:
         mentions_api: str = f"{project_mention_url}?page={self.mention_page}&per_page={self.per_page}&mailto={self.email}"
         self.logger.info("Sending GET request to %s", mentions_api)
         resp: Response = self.session.get(url=mentions_api)
+        self.logger.debug("Response status code: %d", resp.status_code)
 
-        self.total_mention_pages = self._get_last_page(resp=resp)
-        self.mention_page += 1
-
-        return resp.json()
+        if resp.status_code == 404:
+            self.mention_page = self.total_mention_pages + 1
+        else:
+            self.total_mention_pages = self._get_last_page(resp=resp)
+            return resp.json()
 
     def get_papers_from_mention(self, paper_mention_url: str) -> None:
         paper_api: str = f"{paper_mention_url}?mailto={self.email}"
