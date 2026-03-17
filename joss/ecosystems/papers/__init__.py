@@ -1,20 +1,14 @@
 from pydantic import BaseModel
 
 
-class PapersProjects(BaseModel):
+class PapersProject(BaseModel):
     id: int
-    is_pull_request: bool
-    labels: str
-    body: str
-    creator: str
-    state: str
+    project_url: str
+    repository_url: str = ""
     json_str: str
 
 
-class PapersMentions(BaseModel):
+class PapersMention(BaseModel):
     id: int
-    joss_github_issue_id: int
-    github_repo_url: str
-    joss_url: str
-    joss_resolved_url: str
-    journal: str = "joss"
+    project_url: str
+    doi: str

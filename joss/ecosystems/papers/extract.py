@@ -11,7 +11,7 @@ from joss.interfaces import ExtractInterface
 from joss.logger import JOSSLogger
 
 
-class PaperExtractor(ExtractInterface):
+class PaperExtract(ExtractInterface):
     """Extractor for project responses from the Ecosyste.ms Papers API."""
 
     def __init__(
