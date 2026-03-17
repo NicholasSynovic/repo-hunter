@@ -1,10 +1,9 @@
 from json import dump
 
 from joss.db import DB
-from joss.ecosystems.papers.extract import PaperExtract
-from joss.ecosystems.papers.transform import PaperTransform
-from joss.joss.load import JOSSLoad
-from joss.joss.transform import JOSSTransform
+from joss.ecosystems.papers.extract import PapersExtract
+from joss.ecosystems.papers.transform import PapersTransform
+from joss.ecosystems.papers.load import PapersLoad
 from joss.logger import JOSSLogger
 
 
@@ -16,21 +15,18 @@ class JOSSRunner:
         email: str,
         resolve_urls: bool = False,
     ) -> None:
-        self.extract: PaperExtract = PaperExtract(
+        self.extract: PapersExtract = PapersExtract(
             joss_logger=joss_logger,
             email=email,
         )
-        self.transform: PaperTransform = PaperTransform(
+        self.transform: PapersTransform = PapersTransform(
             joss_logger=joss_logger,
         )
-        # self.load: JOSSLoad = JOSSLoad(joss_logger=joss_logger, db=db)
+        self.load: PapersLoad = PapersLoad(joss_logger=joss_logger, db=db)
 
     def run(self) -> None:
         data: list[dict] = self.extract.download_data()
         normalized_data: dict[str, list] = self.transform.transform_data(
             data=data,
         )
-        with open("test.json", mode="w") as fp:
-            dump(obj=normalized_data, fp=fp, indent=4)
-        # )
-        # self.load.load_data(data=normalized_data)
+        self.load.load_data(data=normalized_data)

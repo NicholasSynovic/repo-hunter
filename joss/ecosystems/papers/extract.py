@@ -11,7 +11,7 @@ from joss.interfaces import ExtractInterface
 from joss.logger import JOSSLogger
 
 
-class PaperExtract(ExtractInterface):
+class PapersExtract(ExtractInterface):
     """Extractor for project responses from the Ecosyste.ms Papers API."""
 
     def __init__(
@@ -64,7 +64,7 @@ class PaperExtract(ExtractInterface):
             "Getting project mentions from Ecosyste.ms Papers API...",
             max=len(self.projects),
         ) as bar:
-            for project in self.projects[0:100]:
+            for project in self.projects:
                 if project.get("mentions_count", 0) > 0:
                     project_mention_url: str = project["mentions_url"]
 

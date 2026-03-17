@@ -10,7 +10,7 @@ from joss.interfaces import TransformInterface
 from joss.logger import JOSSLogger
 
 
-class PaperTransform(TransformInterface):
+class PapersTransform(TransformInterface):
     def __init__(
         self,
         joss_logger: JOSSLogger,

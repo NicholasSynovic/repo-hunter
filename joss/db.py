@@ -54,4 +54,21 @@ class DB:
             Column("journal", String),
         )
 
+        _: Table = Table(
+            "_ecosystems_projects",
+            self.metadata,
+            Column("id", Integer, primary_key=True),
+            Column("project_url", String),
+            Column("repository_url", String),
+            Column("json_str", String),
+        )
+
+        _: Table = Table(
+            "_ecosystems_mentions",
+            self.metadata,
+            Column("id", Integer, primary_key=True),
+            Column("project_url", String),
+            Column("doi", String),
+        )
+
         self.metadata.create_all(bind=self.engine, checkfirst=True)
