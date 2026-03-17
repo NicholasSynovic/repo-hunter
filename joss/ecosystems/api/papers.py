@@ -5,6 +5,8 @@ from re import Match
 from requests import Response, Session
 from requests.adapters import HTTPAdapter, Retry
 
+from joss.ecosystems.api import HTTP_GET_TIMEOUT
+
 
 class PapersAPI:
     def __init__(
@@ -27,6 +29,12 @@ class PapersAPI:
         self.total_mention_pages: int = 100
 
         # Create the necessary request session
+        self.headers = {
+            "User-Agent": "nicholassynovic/joss-dataset",
+            "Accept": "application/json",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Connection": "keep-alive",
+        }
         self.adapter: HTTPAdapter = HTTPAdapter(
             max_retries=Retry(
                 total=10,
@@ -38,6 +46,7 @@ class PapersAPI:
         self.session: Session = Session()
         self.session.mount("https://", self.adapter)
         self.session.mount("http://", self.adapter)
+        self.session.headers.update(self.headers)
 
     @staticmethod
     def _get_last_page(resp: Response) -> int:
@@ -63,7 +72,10 @@ class PapersAPI:
 
         projects_api: str = f"https://papers.ecosyste.ms/api/v1/projects?page={self.project_page}&per_page={self.per_page}&mailto={self.email}"
         self.logger.info("Sending GET request to %s", projects_api)
-        resp: Response = self.session.get(url=projects_api)
+        resp: Response = self.session.get(
+            url=projects_api,
+            timeout=HTTP_GET_TIMEOUT,
+        )
         self.logger.debug("Response status code: %d", resp.status_code)
 
         self.total_project_pages = self._get_last_page(resp=resp)
@@ -83,17 +95,28 @@ class PapersAPI:
 
         mentions_api: str = f"{project_mention_url}?page={self.mention_page}&per_page={self.per_page}&mailto={self.email}"
         self.logger.info("Sending GET request to %s", mentions_api)
-        resp: Response = self.session.get(url=mentions_api)
+        resp: Response = self.session.get(
+            url=mentions_api,
+            timeout=HTTP_GET_TIMEOUT,
+        )
         self.logger.debug("Response status code: %d", resp.status_code)
 
         if resp.status_code == 404:
             self.mention_page = self.total_mention_pages + 1
+            # TODO: Does not return a list on this code path
         else:
             self.total_mention_pages = self._get_last_page(resp=resp)
-            return resp.json()
+            try:
+                return resp.json()
+            except:
+                self.logger.error(resp.content)
+                quit()
 
     def get_papers_from_mention(self, paper_mention_url: str) -> None:
         paper_api: str = f"{paper_mention_url}?mailto={self.email}"
         self.logger.info("Sending GET request to %s", paper_api)
-        resp: Response = self.session.get(url=paper_api)
+        resp: Response = self.session.get(
+            url=paper_api,
+            timeout=HTTP_GET_TIMEOUT,
+        )
         return resp.json()

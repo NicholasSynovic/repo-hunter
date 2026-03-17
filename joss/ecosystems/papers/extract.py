@@ -64,7 +64,7 @@ class PaperExtractor(ExtractInterface):
             "Getting project mentions from Ecosyste.ms Papers API...",
             max=len(self.projects),
         ) as bar:
-            for project in self.projects:
+            for project in self.projects[0:100]:
                 if project.get("mentions_count", 0) > 0:
                     project_mention_url: str = project["mentions_url"]
 
