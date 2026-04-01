@@ -1,202 +1,182 @@
-# Agent Guidelines for JOSS Dataset Repository
+# AGENTS.md
 
-Instructions for coding agents working in this Python project.
+Guidance for coding agents working in this repository.
 
-## Rule Sources Checked
+## Project Overview
 
-- Cursor rules in `.cursor/rules/`: not present.
-- Cursor rules in `.cursorrules`: not present.
-- Copilot rules in `.github/copilot-instructions.md`: not present.
-- This file is the canonical agent guidance for this repository.
+- Repository name: `repo-hunter`
+- Python package name: `joss`
+- CLI command name: `rh`
+- Python requirement: `~=3.13`
+- Workflow style: CLI + ETL pipeline (`extract -> transform -> load`)
+- Dependency/build tool: `uv`
+- Main quality gate: `pre-commit`
 
-## Environment and Tooling
+Key config files:
+- `pyproject.toml`
+- `Makefile`
+- `ruff.toml`
+- `.pre-commit-config.yaml`
+- `.editorconfig`
+- `.isort.cfg`
 
-- Language: Python (`requires-python = "~=3.13"` in `pyproject.toml`).
-- Dependency/package manager: `uv`.
-- Build backend: `hatchling`.
-- Lint/format: Ruff + isort via pre-commit hooks.
-- Security scanning: Bandit via pre-commit.
-- Line endings/encoding: LF + UTF-8 (`.editorconfig`).
+## Repository Layout
 
-## Build, Lint, and Test Commands
+- `joss/`: installable package and CLI implementation
+  - `joss/main.py`: CLI entrypoint
+  - `joss/cli.py`: argparse helpers and subcommands
+  - `joss/db.py`: SQLite schema/bootstrap
+  - `joss/joss/`: JOSS ingestion flow
+  - `joss/ecosystems/`: `papers` and `awesome` flows
+- `analysis/`: analysis scripts
+- `scripts/`: utility scripts
 
-Use these commands first when validating changes:
+## Setup and Environment
 
-```bash
-# One-time local setup
-make create-dev
+Preferred setup:
+- `make create-dev`
 
-# Build and install package from source
-make build
+`make create-dev` runs:
+- `pre-commit install`
+- `pre-commit autoupdate`
+- `uv sync`
+- `uv build`
 
-# Run all checks on all files
-pre-commit run --all-files
-```
+Minimal setup:
+- `uv sync`
+- `pre-commit install`
 
-### Targeted Lint/Format Commands
+Runtime variable:
+- `GITHUB_TOKEN` is required for GitHub-backed ingestion.
 
-Use targeted checks while iterating on changed files:
+Example:
+- `export GITHUB_TOKEN="ghp_your_token"`
 
-```bash
-pre-commit run ruff-check --files joss/main.py joss/utils.py
-pre-commit run ruff-format --files joss/main.py joss/utils.py
-pre-commit run isort --files joss/main.py joss/utils.py
-pre-commit run bandit --files joss/main.py joss/utils.py
-```
+## Build Commands
 
-Notes:
+Use one of:
+- `make build` (preferred)
+- `uv build` (direct)
 
-- Ruff line length is `88` (`ruff.toml`).
-- isort line length is `79` for import wrapping (`.isort.cfg`).
-- Ruff target version is `py310` for lint/format compatibility.
+Build notes:
+- `make build` updates version from latest git tag.
+- Artifacts are written to `dist/`.
+- `make build` installs `dist/*.tar.gz` locally via `uv pip install`.
 
-### Testing Commands (Especially Single-Test Runs)
+## Lint / Format / Security Commands
 
-There is currently no committed `tests/` directory. If/when tests are added,
-use `pytest` node selection patterns like this:
+Primary command:
+- `pre-commit run --all-files`
 
-```bash
-# Run all tests
-pytest
+Targeted commands:
+- `uv run ruff check .`
+- `uv run ruff format .`
+- `uv run isort .`
+- `uv run bandit -r joss analysis scripts`
 
-# Run one test file
-pytest tests/test_parsers.py
+When only a few files changed:
+- `pre-commit run --files <file1> <file2>`
 
-# Run one test function
-pytest tests/test_parsers.py::test_parse_joss_issue
+## Test Commands
 
-# Run one test class
-pytest tests/test_parsers.py::TestParserBehavior
+Current status:
+- No `tests/` directory is committed right now.
+- No canonical pytest config/suite is present.
 
-# Run tests matching a keyword expression
-pytest -k "parse_joss and not slow"
+When tests are added, use these exact patterns:
+- Full suite: `uv run pytest`
+- Single file: `uv run pytest tests/path/test_module.py`
+- Single test: `uv run pytest tests/path/test_module.py::test_name`
+- Single parametrized case: `uv run pytest tests/path/test_module.py::test_name[param]`
 
-# Stop on first failure
-pytest -x
-```
-
-Run the most specific test node covering your change first.
-
-## CLI Run Commands
-
-```bash
-# Main ingestion flow
-joss joss --out-file joss.db
-
-# Papers ingestion flow
-joss papers --out-file papers.db --email you@example.com
-```
-
-Environment requirements:
-
-- `GITHUB_TOKEN` is required for GitHub ingestion.
-- Missing token raises `RuntimeError` in `joss/cli.py`.
+Practical runtime verification commands today:
+- `rh --help`
+- `rh joss --out-file /tmp/joss.db`
+- `rh papers --out-file /tmp/papers.db --email you@example.com`
+- `rh awesome --out-file /tmp/awesome.db --email you@example.com`
 
 ## Code Style Guidelines
 
+### Typing and Python
+
+- Use Python 3.13-compatible language features.
+- Prefer built-in generics (`list[str]`, `dict[str, Any]`) and `X | None`.
+- Add type hints to all function signatures.
+- Prefer explicit return annotations on public functions/methods.
+- Use existing Pydantic models for normalized ETL records.
+
+### Formatting and Whitespace
+
+- Python indentation: 4 spaces.
+- Max line length: 88 (Ruff).
+- Strings: double quotes.
+- Remove trailing whitespace.
+- Ensure final newline at EOF.
+
 ### Imports
 
-- Use absolute imports within the package (`from joss.db import DB`).
-- Group imports as: standard library, third-party, local package.
-- Keep imports sorted according to `.isort.cfg`.
-- Do not use wildcard imports.
+- Keep imports at module top unless a deferred import is required.
+- Keep imports sorted/grouped consistently with isort (black profile).
+- Prefer explicit imports.
+- Avoid wildcard imports.
+- Remove unused imports.
 
-### Formatting
+### Naming
 
-- Format with Ruff (`ruff-format` pre-commit hook).
-- Use double quotes.
-- Use 4-space indentation for Python.
-- Respect Ruff line length (`88`).
-- Keep trailing commas where formatter/linter expects them.
-- Ensure final newline in all files.
+- Variables/functions/modules: `snake_case`
+- Classes: `PascalCase`
+- Constants: `UPPER_SNAKE_CASE`
+- Internal helpers: leading underscore (`_helper`)
+- Keep ETL stage naming explicit (`extract`, `transform`, `load`, `runner`).
 
-### Type Hints
+### Docstrings and Comments
 
-- Type all function/method arguments.
-- Type all return values (`-> None` when appropriate).
-- Prefer built-in generics (`list[str]`, `dict[str, int]`).
-- Prefer `|` unions (`str | None`).
-- Use `Any` only when required; keep waivers narrow.
+- Use concise docstrings for public APIs and non-obvious logic.
+- Include `Args`/`Returns`/`Raises` where helpful.
+- Keep comments minimal; prefer clear code.
 
-### Naming Conventions
+### Error Handling
 
-- Functions/variables/helpers: `snake_case`.
-- Classes: `PascalCase`.
-- Constants: `UPPER_SNAKE_CASE`.
-- Private/internal names: leading underscore.
-- Keep CLI argument names explicit and descriptive.
+- Fail fast on missing config, args, and required inputs.
+- Raise specific exceptions with actionable messages.
+- Avoid bare `except:`.
+- Catch concrete exception classes.
+- Log context before fallback or skip behavior.
+- Do not silently swallow parse/network/API failures.
 
-### Docstrings and Documentation
+### Logging
 
-- Keep module docstrings at top of file.
-- Public functions/classes should include docstrings.
-- Use Google-style sections (`Args`, `Returns`, `Raises`) when needed.
-- Keep docstrings behavior-focused and concise.
+- Use logger instances in package code (avoid `print` in `joss/`).
+- Include context (IDs, URLs, counts, page numbers) in log lines.
+- Use levels consistently: `debug`, `info`, `warning`, `error`.
 
-### Error Handling and Logging
+### Data and DB Consistency
 
-- Raise explicit, actionable exceptions.
-- Prefer building a `msg` variable before raising complex errors.
-- Validate external inputs early (CLI args, env vars, parsed payloads).
-- Use structured logging placeholders (`logger.info("x=%s", x)`).
-- Avoid silently swallowing exceptions.
+- Preserve table names/schema intent in `joss/db.py`.
+- Keep transformed output fields aligned with models/schema.
+- Preserve deterministic IDs/mappings where present.
 
-### Data and I/O
+### CLI and UX
 
-- Use `pathlib.Path` for filesystem paths.
-- Use explicit UTF-8 encoding for text file I/O.
-- Use stable JSON serialization (`sort_keys=True`) when reproducible output matters.
-- Keep timestamp handling explicit and UTC-based.
+- Extend shared parser helpers in `joss/cli.py`.
+- Keep help text short and task-focused.
+- Validate required args/env vars early.
 
-## Lint Rule Baseline
+## Agent Working Agreement
 
-Ruff enables broad rule families (security, annotations, naming, docstrings,
-pyflakes/pycodestyle, pylint-like checks, and modernization checks).
+- Make focused, minimal diffs.
+- Preserve existing behavior unless the task explicitly changes it.
+- Run relevant quality checks before finishing.
+- Prefer `pre-commit` for final validation.
+- If adding tests, include happy-path and failure-path coverage.
+- Do not add new tooling without a clear repo-level benefit.
 
-Repository Ruff ignore list:
+## Cursor / Copilot Rules
 
-- `D203`
-- `D212`
-- `COM812`
-- `S404`
+Checked in this repository:
+- `.cursor/rules/`: not present
+- `.cursorrules`: not present
+- `.github/copilot-instructions.md`: not present
 
-Bandit runs on Python files through pre-commit.
-
-## File and Encoding Rules
-
-- Follow `.editorconfig`: UTF-8, LF, final newline, trimmed trailing spaces.
-- Python files use 4 spaces.
-- Markdown indentation uses 2 spaces where indentation matters.
-
-## Project Layout (High-Level)
-
-```text
-joss/
-  cli.py, main.py, db.py, parsers.py, utils.py, logger.py, interfaces.py
-  ecosystems/
-    api/
-    papers/
-  joss/
-    extract.py, transform.py, load.py, runner.py
-analysis/
-scripts/
-```
-
-## Agent Workflow Expectations
-
-- Make minimal, targeted edits aligned with existing patterns.
-- Avoid unrelated refactors in feature/fix tasks.
-- Prefer updating existing modules over adding new abstractions.
-- Run targeted checks first, then broader validation as needed.
-- In PR/commit notes, record why the change exists and what was validated.
-
-## Practical Agent Checklist
-
-Use this flow for code changes:
-
-1. Read affected module(s) and nearby conventions.
-2. Implement the smallest viable change.
-3. Run targeted pre-commit hooks on changed files.
-4. Run relevant single-test node(s) if tests exist.
-5. Run broader checks (`pre-commit run --all-files`) when practical.
-6. Summarize what changed, why, and what was validated.
+If these files are added later, treat them as higher-priority instructions and
+update this AGENTS.md summary.
