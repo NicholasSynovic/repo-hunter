@@ -6,22 +6,22 @@ from logging import Logger
 
 from progress.bar import Bar
 
-from joss.ecosystems.api.papers import PapersAPI
+from joss.ecosystems.api.awesome import AwesomeAPI
 from joss.interfaces import ExtractInterface
 from joss.logger import JOSSLogger
 
 
-class PapersExtract(ExtractInterface):
-    """Extractor for project responses from the Ecosyste.ms Papers API."""
+class AwesomeExtract(ExtractInterface):
+    """Extractor for project responses from the Ecosyste.ms Awesome API."""
 
     def __init__(
         self,
         joss_logger: JOSSLogger,
         email: str,
-        per_page: int = 100,
+        per_page: int = 10,
     ) -> None:
         """
-        Initialize the papers extractor.
+        Initialize the list extractor.
 
         Args:
             joss_logger: Logger wrapper used by the application.
@@ -30,31 +30,33 @@ class PapersExtract(ExtractInterface):
 
         """
         self.logger: Logger = joss_logger.get_logger()
-        self._api: PapersAPI = PapersAPI(
+        self._api: AwesomeAPI = AwesomeAPI(
             email=email,
             logger=self.logger,
             per_page=per_page,
         )
 
-        self.projects: list[dict] = []
+        self.awesome_lists: list[dict] = []
         self.mentions: list[dict] = []
 
-    def get_projects(self) -> None:
-        """Fetch all projects from the Papers API."""
+    def get_lists(self) -> None:
+        """Fetch all lists from the Awesome API."""
         with Bar(
-            "Getting projects from Ecosyste.ms Papers API...",
-            max=self._api.total_project_pages,
+            "Getting lists from Ecosyste.ms Awesome API...",
+            max=self._api.total_list_pages,
         ) as bar:
             while True:
-                projects: list[dict] = self._api.get_projects()
-                if not projects:
+                awesome_lists: list[dict] = self._api.get_lists()
+                if not awesome_lists:
                     break
 
-                self.projects.extend(projects)
-                bar.max = self._api.total_project_pages
+                self.awesome_lists.extend(awesome_lists)
+                bar.max = self._api.total_list_pages
                 bar.next()
 
-        self.logger.info("Number of papers projects collected: %d", len(self.projects))
+        self.logger.info(
+            "Number of awesome lists collected: %d", len(self.awesome_lists)
+        )
 
     def get_mentions(self) -> None:
         """Fetch all mentions for projects that have mention records."""
@@ -102,17 +104,17 @@ class PapersExtract(ExtractInterface):
         # instance do not carry stale pagination/data forward.
         self.projects = []
         self.mentions = []
+        self._api.list_page = 1
+        self._api.total_list_pages = 100
         self._api.project_page = 1
         self._api.total_project_pages = 100
-        self._api.mention_page = 1
-        self._api.total_mention_pages = 100
 
-        self.get_projects()
-        self.get_mentions()
+        self.get_lists()
+        # self.get_mentions()
 
-        return [
-            {
-                "projects": self.projects,
-                "mentions": self.mentions,
-            },
-        ]
+        # return [
+        #     {
+        #         "projects": self.projects,
+        #         "mentions": self.mentions,
+        #     },
+        # ]

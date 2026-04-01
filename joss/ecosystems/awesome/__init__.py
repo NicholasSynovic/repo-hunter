@@ -1,14 +1,15 @@
 from pydantic import BaseModel
 
 
-class PapersProject(BaseModel):
+class AwesomeList(BaseModel):
     id: int
-    project_url: str
+    projects_url: str
     repository_url: str = ""
     json_str: str
 
 
-class PapersMention(BaseModel):
+class ListProject(BaseModel):
     id: int
-    project_url: str
-    doi: str
+    list_id: int
+    repository_url: str = ""
+    json_str: str

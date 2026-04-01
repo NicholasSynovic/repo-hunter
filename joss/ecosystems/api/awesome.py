@@ -60,17 +60,40 @@ class AwesomeAPI:
 
         return last_page
 
-    def get(self) -> list:
+    def get_lists(self) -> list:
+        # Shortcut to prohibit excessive API calling
+        if self.list_page > self.total_list_pages:
+            self.logger.error(
+                "Lists API page count exceeds that of the total number of pages: %d, %d",
+                self.list_page,
+                self.total_list_pages,
+            )
+            return []
+
+        lists_api: str = f"https://awesome.ecosyste.ms/api/v1/lists?page={self.project_page}&per_page={self.per_page}&mailto={self.email}"
+        self.logger.info("Sending GET request to %s", lists_api)
+        resp: Response = self.session.get(
+            url=lists_api,
+            timeout=HTTP_GET_TIMEOUT,
+        )
+        self.logger.debug("Response status code: %d", resp.status_code)
+
+        self.total_list_pages = self._get_last_page(resp=resp)
+        self.list_page += 1
+
+        return resp.json()
+
+    def get_projects_from_list(self, list_projects_url: str) -> list:
         # Shortcut to prohibit excessive API calling
         if self.project_page > self.total_project_pages:
             self.logger.error(
-                "Awesome API page count exceeds that of the total number of pages: %d, %d",
+                "Projects API page count exceeds that of the total number of pages: %d, %d",
                 self.project_page,
                 self.total_project_pages,
             )
             return []
 
-        projects_api: str = f"https://papers.ecosyste.ms/api/v1/projects?page={self.project_page}&per_page={self.per_page}&mailto={self.email}"
+        projects_api: str = f"{list_projects_url}?page={self.mention_page}&per_page={self.per_page}&mailto={self.email}"
         self.logger.info("Sending GET request to %s", projects_api)
         resp: Response = self.session.get(
             url=projects_api,
@@ -78,45 +101,13 @@ class AwesomeAPI:
         )
         self.logger.debug("Response status code: %d", resp.status_code)
 
-        self.total_project_pages = self._get_last_page(resp=resp)
-        self.project_page += 1
-
-        return resp.json()
-
-    def get_mentions_from_project(self, project_mention_url: str) -> list:
-        # Shortcut to prohibit excessive API calling
-        if self.mention_page > self.total_mention_pages:
-            self.logger.error(
-                "Mentions API page count exceeds that of the total number of pages: %d, %d",
-                self.mention_page,
-                self.total_mention_pages,
-            )
-            return []
-
-        mentions_api: str = f"{project_mention_url}?page={self.mention_page}&per_page={self.per_page}&mailto={self.email}"
-        self.logger.info("Sending GET request to %s", mentions_api)
-        resp: Response = self.session.get(
-            url=mentions_api,
-            timeout=HTTP_GET_TIMEOUT,
-        )
-        self.logger.debug("Response status code: %d", resp.status_code)
-
         if resp.status_code == 404:
-            self.mention_page = self.total_mention_pages + 1
+            self.project_page = self.total_project_pages + 1
             # TODO: Does not return a list on this code path
         else:
-            self.total_mention_pages = self._get_last_page(resp=resp)
+            self.total_project_pages = self._get_last_page(resp=resp)
             try:
                 return resp.json()
             except:
                 self.logger.error(resp.content)
                 quit()
-
-    def get_papers_from_mention(self, paper_mention_url: str) -> None:
-        paper_api: str = f"{paper_mention_url}?mailto={self.email}"
-        self.logger.info("Sending GET request to %s", paper_api)
-        resp: Response = self.session.get(
-            url=paper_api,
-            timeout=HTTP_GET_TIMEOUT,
-        )
-        return resp.json()

@@ -172,5 +172,12 @@ class CLI:
         self.add_out_file_argument(parser=papers_parser, required=True)
         self.add_email_argument(parser=papers_parser, required=True)
 
+        awesome_parser = subparsers.add_parser(
+            "awesome",
+            help="Get all Ecosyste.ms Awesome projects.",
+        )
+        self.add_out_file_argument(parser=awesome_parser, required=True)
+        self.add_email_argument(parser=awesome_parser, required=True)
+
         # Parse args
         return parser.parse_args()
