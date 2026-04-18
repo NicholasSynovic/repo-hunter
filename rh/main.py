@@ -17,9 +17,6 @@ def main() -> int:
     """Entry point for the JOSS CLI application."""
     args = CLI().run()
 
-    if args.dataset is None:
-        sys.exit(1)
-
     logger: JOSSLogger = JOSSLogger(name=__name__)
     logger.setup_file_logging(prefix=APPLICATION_NAME)
 
@@ -47,8 +44,8 @@ def main() -> int:
     elif args.dataset == "gh":
         logger.get_logger().info(
             "GitHub repository search is not implemented yet. "
-            "Received filters: stars=%d forks=%d watchers=%d issues=%d "
-            "age_months=%d prs=%d",
+            "Received filters: stars=%s forks=%s watchers=%s issues=%s "
+            "age_months=%s prs=%s",
             args.star_count,
             args.fork_count,
             args.watcher_count,
