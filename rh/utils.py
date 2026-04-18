@@ -16,11 +16,15 @@ class JOSSUtils:
         """
         Load and decode a JSON file from disk.
 
-        Args:
-            path: Path to the JSON file.
+        Parameters
+        ----------
+        path : Path
+            Path to the JSON file.
 
-        Returns:
-            The decoded JSON object or array.
+        Returns
+        -------
+        Any
+            Decoded JSON object or array.
 
         """
         return json.loads(path.read_text(encoding="utf-8"))
@@ -35,10 +39,14 @@ class JOSSUtils:
         """
         Serialize data to a JSON file on disk.
 
-        Args:
-            data: The Python object to serialize.
-            path: Destination file path.
-            indent: Number of spaces for indentation.
+        Parameters
+        ----------
+        data : Any
+            Python object to serialize.
+        path : Path
+            Destination file path.
+        indent : int, default=4
+            Number of spaces for indentation.
 
         """
         path.write_text(
@@ -51,8 +59,10 @@ class JOSSUtils:
         """
         Return the current UTC time in ISO-8601 format (seconds precision).
 
-        Returns:
-            The current UTC time in ISO-8601 format (seconds precision).
+        Returns
+        -------
+        int
+            Current UTC timestamp in Unix seconds.
 
         """
         return int(
@@ -68,9 +78,15 @@ class JOSSUtils:
         """
         Convert a ISO timestamp to unix seconds.
 
-        Returns:
-            Unix seconds. Returns 0 if `ts` is None to keep the schema strictly
-            int.
+        Parameters
+        ----------
+        ts : str | None
+            ISO-8601 timestamp string in ``%Y-%m-%dT%H:%M:%SZ`` format.
+
+        Returns
+        -------
+        int
+            Unix seconds. Returns ``0`` when ``ts`` is ``None``.
 
         """
         if ts is None:
@@ -89,11 +105,15 @@ class JOSSUtils:
         segment of the stem.  For example,
         ``github_issues_1234567890.json`` yields ``1234567890``.
 
-        Args:
-            filename: The filename (not a full path) to parse.
+        Parameters
+        ----------
+        filename : str
+            Filename (not a full path) to parse.
 
-        Returns:
-            The extracted timestamp, or ``None`` if parsing fails.
+        Returns
+        -------
+        int | None
+            Extracted timestamp, or ``None`` when parsing fails.
 
         """
         stem = Path(filename).stem

@@ -1,4 +1,4 @@
-"""Global variables for the `joss` subcommand"""
+"""Constants and normalized models for the ``rh joss`` pipeline."""
 
 from string import Template
 
@@ -20,6 +20,26 @@ HTTP_POST_TIMEOUT: int = 60
 
 
 class JOSSGHIssue(BaseModel):
+    """Normalized representation of a JOSS GitHub issue.
+
+    Parameters
+    ----------
+    id : int
+        GitHub issue number.
+    is_pull_request : bool
+        Whether the source record is a pull request.
+    labels : str
+        JSON-encoded list of label names.
+    body : str
+        Raw issue body text.
+    creator : str
+        Login of the issue creator.
+    state : str
+        GitHub issue state.
+    json_str : str
+        Full source issue payload serialized to JSON.
+    """
+
     id: int
     is_pull_request: bool
     labels: str
@@ -30,6 +50,24 @@ class JOSSGHIssue(BaseModel):
 
 
 class JOSSPaperProjectIssue(BaseModel):
+    """Mapping from accepted JOSS issue to paper project metadata.
+
+    Parameters
+    ----------
+    id : int
+        Synthetic row identifier assigned during transformation.
+    joss_github_issue_id : int
+        Source JOSS GitHub issue number.
+    github_repo_url : str
+        Repository URL extracted from the issue body.
+    joss_url : str
+        Canonical JOSS paper URL.
+    joss_resolved_url : str
+        Final redirect target for ``joss_url`` when URL resolution is enabled.
+    journal : str, default="joss"
+        Journal identifier for downstream analysis.
+    """
+
     id: int
     joss_github_issue_id: int
     github_repo_url: str

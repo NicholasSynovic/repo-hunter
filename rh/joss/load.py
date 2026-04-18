@@ -1,18 +1,44 @@
+"""Load transformed JOSS records into SQLite tables."""
+
 from logging import Logger
+
+from pandas import DataFrame
+from progress.bar import Bar
 
 from rh.db import DB
 from rh.interfaces import LoadInterface
 from rh.logger import JOSSLogger
-from pandas import DataFrame
-from progress.bar import Bar
 
 
 class JOSSLoad(LoadInterface):
+    """Loader for JOSS table payloads.
+
+    Parameters
+    ----------
+    joss_logger : JOSSLogger
+        Application logger wrapper.
+    db : DB
+        Database wrapper containing SQLAlchemy engine and metadata.
+    """
+
     def __init__(self, joss_logger: JOSSLogger, db: DB) -> None:
+        """Initialize the loader with logger and target database."""
         self.db: DB = db
         self.logger: Logger = joss_logger.get_logger()
 
     def load_data(self, data: dict[str, list]) -> bool:
+        """Write transformed rows into destination tables.
+
+        Parameters
+        ----------
+        data : dict[str, list]
+            Mapping of table names to row dictionaries.
+
+        Returns
+        -------
+        bool
+            ``True`` when all table writes complete.
+        """
         table_names: list[str] = list(data.keys())
 
         self.logger.info("Writing data to `%s`", self.db._path)

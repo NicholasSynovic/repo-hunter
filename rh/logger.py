@@ -20,8 +20,10 @@ class JOSSLogger:
         """
         Initialise the logger wrapper.
 
-        Args:
-            name: Logger name passed to :func:`logging.getLogger`.
+        Parameters
+        ----------
+        name : str
+            Logger name passed to :func:`logging.getLogger`.
 
         """
         self._logger: logging.Logger = logging.getLogger(name)
@@ -35,11 +37,15 @@ class JOSSLogger:
         The log file is named ``<prefix>_<timestamp>.log`` and is
         written to the current working directory.
 
-        Args:
-            prefix: Filename prefix (e.g. ``"github_issues"``).
+        Parameters
+        ----------
+        prefix : str
+            Filename prefix (for example, ``"github_issues"``).
 
-        Returns:
-            The log filename that was created.
+        Returns
+        -------
+        str
+            Created log filename.
 
         """
         log_filename: str = f"{prefix}_{self.timestamp}.log"
@@ -58,8 +64,10 @@ class JOSSLogger:
         """
         Return the underlying :class:`logging.Logger`.
 
-        Returns:
-            The configured logger instance.
+        Returns
+        -------
+        logging.Logger
+            Configured logger instance.
 
         """
         return self._logger

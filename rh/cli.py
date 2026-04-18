@@ -18,8 +18,10 @@ class CLI:
         """
         Add the ``--max-pages`` optional argument to a parser.
 
-        Args:
-            parser: The argument parser to augment.
+        Parameters
+        ----------
+        parser : argparse.ArgumentParser
+            Argument parser to augment.
 
         """
         parser.add_argument(
@@ -38,9 +40,12 @@ class CLI:
         """
         Add the ``--in-file`` argument to a parser.
 
-        Args:
-            parser: The argument parser to augment.
-            required: Whether the argument is mandatory.
+        Parameters
+        ----------
+        parser : argparse.ArgumentParser
+            Argument parser to augment.
+        required : bool, default=True
+            Whether the argument is mandatory.
 
         """
         parser.add_argument(
@@ -59,9 +64,12 @@ class CLI:
         """
         Add the ``--our-file`` argument to a parser.
 
-        Args:
-            parser: The argument parser to augment.
-            required: Whether the argument is mandatory.
+        Parameters
+        ----------
+        parser : argparse.ArgumentParser
+            Argument parser to augment.
+        required : bool, default=True
+            Whether the argument is mandatory.
 
         """
         parser.add_argument(
@@ -81,9 +89,12 @@ class CLI:
         """
         Add the ``--email`` argument to a parser.
 
-        Args:
-            parser: The argument parser to augment.
-            required: Whether the argument is mandatory.
+        Parameters
+        ----------
+        parser : argparse.ArgumentParser
+            Argument parser to augment.
+        required : bool, default=True
+            Whether the argument is mandatory.
 
         """
         parser.add_argument(
@@ -102,9 +113,12 @@ class CLI:
         """
         Add the ``--resolve-urls`` argument to a parser.
 
-        Args:
-            parser: The argument parser to augment.
-            required: Whether the argument is mandatory.
+        Parameters
+        ----------
+        parser : argparse.ArgumentParser
+            Argument parser to augment.
+        required : bool, default=False
+            Whether the argument is mandatory.
 
         """
         parser.add_argument(
@@ -119,11 +133,15 @@ class CLI:
         """
         Read `GITHUB_TOKEN` from the environment.
 
-        Returns:
-            The GitHub token read from the `GITHUB_TOKEN` environment variable.
+        Returns
+        -------
+        str
+            GitHub token read from ``GITHUB_TOKEN``.
 
-        Raises:
-            RuntimeError: If `GITHUB_TOKEN` is missing/empty.
+        Raises
+        ------
+        RuntimeError
+            If ``GITHUB_TOKEN`` is missing or empty.
 
         """
         token: str = os.environ.get("GITHUB_TOKEN", "").strip()
@@ -142,8 +160,10 @@ class CLI:
         """
         Build and run the CLI argument parser.
 
-        Returns:
-            Parsed command-line arguments as a Namespace object.
+        Returns
+        -------
+        Namespace
+            Parsed command-line arguments.
 
         """
         # Setup top level parser

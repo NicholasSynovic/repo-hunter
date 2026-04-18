@@ -1,13 +1,32 @@
+"""HTTP client wrapper for the Ecosyste.ms Awesome API."""
+
 import re
 from logging import Logger
 from re import Match
 
-from rh.ecosystems.api import HTTP_GET_TIMEOUT
 from requests import Response, Session
 from requests.adapters import HTTPAdapter, Retry
 
+from rh.ecosystems.api import HTTP_GET_TIMEOUT
+
 
 class AwesomeAPI:
+    """Stateful client for paginated Awesome API requests.
+
+    Parameters
+    ----------
+    email : str
+        Contact email passed through the ``mailto`` query parameter.
+    logger : Logger
+        Logger instance used for request diagnostics.
+    list_page : int, default=1
+        Initial page for list endpoint requests.
+    project_page : int, default=1
+        Initial page for projects within a list.
+    per_page : int, default=100
+        Requested number of records per API page.
+    """
+
     def __init__(
         self,
         email: str,
@@ -16,6 +35,7 @@ class AwesomeAPI:
         project_page: int = 1,
         per_page: int = 100,
     ) -> None:
+        """Initialize request session and pagination state."""
         self.logger: Logger = logger
 
         self.email: str = email
@@ -49,6 +69,18 @@ class AwesomeAPI:
 
     @staticmethod
     def _get_last_page(resp: Response) -> int:
+        """Parse the last page number from an HTTP ``Link`` header.
+
+        Parameters
+        ----------
+        resp : Response
+            HTTP response containing pagination links.
+
+        Returns
+        -------
+        int
+            Last page number when found, otherwise ``-1``.
+        """
         last_page: int = -1
         pattern: str = r"[?&]page=(\d+).*?rel=\"last\""
 
@@ -60,6 +92,14 @@ class AwesomeAPI:
         return last_page
 
     def get_lists(self) -> list:
+        """Fetch one page of list records from the Awesome API.
+
+        Returns
+        -------
+        list
+            Decoded JSON list records, or an empty list when pagination limits
+            are exceeded.
+        """
         # Shortcut to prohibit excessive API calling
         if self.list_page > self.total_list_pages:
             self.logger.error(
@@ -83,6 +123,18 @@ class AwesomeAPI:
         return resp.json()
 
     def get_projects_from_list(self, list_projects_url: str) -> list:
+        """Fetch one page of project records for a specific list.
+
+        Parameters
+        ----------
+        list_projects_url : str
+            Base projects endpoint for a single Awesome list.
+
+        Returns
+        -------
+        list
+            Decoded JSON project records, or an empty list when unavailable.
+        """
         # Shortcut to prohibit excessive API calling
         if self.project_page > self.total_project_pages:
             self.logger.error(

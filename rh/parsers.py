@@ -12,10 +12,14 @@ def parse_joss_issue(body: str) -> dict[str, str | list[str] | None]:
     Extracts metadata fields from JOSS submission issue bodies using
     regex patterns to match HTML comment markers and structured text.
 
-    Args:
-        body: Raw issue body text from a JOSS GitHub issue.
+    Parameters
+    ----------
+    body : str
+        Raw issue body text from a JOSS GitHub issue.
 
-    Returns:
+    Returns
+    -------
+    dict[str, str | list[str] | None]
         Dictionary with the following keys:
         - author_handle: GitHub username with @ symbol (e.g., "@username")
         - author_name: Full name from ORCID link
@@ -30,7 +34,8 @@ def parse_joss_issue(body: str) -> dict[str, str | list[str] | None]:
 
         Missing fields have None values. Empty strings are treated as None.
 
-    Example:
+    Examples
+    --------
         >>> body = "**Submitting author:** <!--author-handle-->@user"
         ... "<!--end-author-handle-->"
         >>> result = parse_joss_issue(body)

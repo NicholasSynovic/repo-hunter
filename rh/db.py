@@ -1,7 +1,8 @@
+"""Database bootstrap and schema registration utilities."""
+
 from logging import Logger
 from pathlib import Path
 
-from rh.logger import JOSSLogger
 from sqlalchemy import (
     Boolean,
     Column,
@@ -14,9 +15,22 @@ from sqlalchemy import (
     create_engine,
 )
 
+from rh.logger import JOSSLogger
+
 
 class DB:
+    """SQLite database wrapper used by ETL loaders.
+
+    Parameters
+    ----------
+    joss_logger : JOSSLogger
+        Logger wrapper used to obtain the shared application logger.
+    db_path : Path
+        Path to the SQLite database file.
+    """
+
     def __init__(self, joss_logger: JOSSLogger, db_path: Path) -> None:
+        """Initialize the database engine and ensure tables exist."""
         self._path: Path = db_path.absolute()
 
         self.engine: Engine = create_engine(url=f"sqlite:///{self._path}")
@@ -26,6 +40,7 @@ class DB:
         self._create_tables()
 
     def _create_tables(self) -> None:
+        """Create all expected tables when they do not already exist."""
         _: Table = Table(
             "_joss_github_issues",
             self.metadata,

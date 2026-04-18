@@ -4,10 +4,11 @@
 
 from logging import Logger
 
+from progress.bar import Bar
+
 from rh.ecosystems.api.papers import PapersAPI
 from rh.interfaces import ExtractInterface
 from rh.logger import JOSSLogger
-from progress.bar import Bar
 
 
 class PapersExtract(ExtractInterface):
@@ -22,10 +23,14 @@ class PapersExtract(ExtractInterface):
         """
         Initialize the papers extractor.
 
-        Args:
-            joss_logger: Logger wrapper used by the application.
-            email: Contact email sent to the Papers API via ``mailto``.
-            per_page: Number of records requested per API page.
+        Parameters
+        ----------
+        joss_logger : JOSSLogger
+            Logger wrapper used by the application.
+        email : str
+            Contact email sent to the Papers API via ``mailto``.
+        per_page : int, default=100
+            Number of records requested per API page.
 
         """
         self.logger: Logger = joss_logger.get_logger()
@@ -93,8 +98,10 @@ class PapersExtract(ExtractInterface):
         """
         Download all projects and mentions from the Papers API.
 
-        Returns:
-            A single-item list containing ``projects`` and ``mentions`` payloads.
+        Returns
+        -------
+        list[dict[str, list[dict]]]
+            Single-item list containing ``projects`` and ``mentions`` payloads.
 
         """
         # Reset local and API state so repeated runs on the same extractor

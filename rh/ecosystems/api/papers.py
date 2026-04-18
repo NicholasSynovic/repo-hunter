@@ -1,13 +1,32 @@
+"""HTTP client wrapper for the Ecosyste.ms Papers API."""
+
 import re
 from logging import Logger
 from re import Match
 
-from rh.ecosystems.api import HTTP_GET_TIMEOUT
 from requests import Response, Session
 from requests.adapters import HTTPAdapter, Retry
 
+from rh.ecosystems.api import HTTP_GET_TIMEOUT
+
 
 class PapersAPI:
+    """Stateful client for paginated Papers API requests.
+
+    Parameters
+    ----------
+    email : str
+        Contact email passed through the ``mailto`` query parameter.
+    logger : Logger
+        Logger instance used for request diagnostics.
+    project_page : int, default=1
+        Initial page for project listing requests.
+    mention_page : int, default=1
+        Initial page for per-project mention requests.
+    per_page : int, default=100
+        Requested number of records per API page.
+    """
+
     def __init__(
         self,
         email: str,
@@ -16,6 +35,7 @@ class PapersAPI:
         mention_page: int = 1,
         per_page: int = 100,
     ) -> None:
+        """Initialize request session and pagination state."""
         self.logger: Logger = logger
 
         self.email: str = email
@@ -49,6 +69,18 @@ class PapersAPI:
 
     @staticmethod
     def _get_last_page(resp: Response) -> int:
+        """Parse the last page number from an HTTP ``Link`` header.
+
+        Parameters
+        ----------
+        resp : Response
+            HTTP response containing pagination links.
+
+        Returns
+        -------
+        int
+            Last page number when found, otherwise ``-1``.
+        """
         last_page: int = -1
         pattern: str = r"[?&]page=(\d+).*?rel=\"last\""
 
@@ -60,6 +92,14 @@ class PapersAPI:
         return last_page
 
     def get_projects(self) -> list:
+        """Fetch one page of project records from the Papers API.
+
+        Returns
+        -------
+        list
+            Decoded JSON project records, or an empty list when pagination
+            limits are exceeded.
+        """
         # Shortcut to prohibit excessive API calling
         if self.project_page > self.total_project_pages:
             self.logger.error(
@@ -83,6 +123,18 @@ class PapersAPI:
         return resp.json()
 
     def get_mentions_from_project(self, project_mention_url: str) -> list:
+        """Fetch one page of mention records for a specific project.
+
+        Parameters
+        ----------
+        project_mention_url : str
+            Base mentions endpoint for a single project.
+
+        Returns
+        -------
+        list
+            Decoded JSON mention records, or an empty list when unavailable.
+        """
         # Shortcut to prohibit excessive API calling
         if self.mention_page > self.total_mention_pages:
             self.logger.error(
@@ -112,6 +164,18 @@ class PapersAPI:
                 quit()
 
     def get_papers_from_mention(self, paper_mention_url: str) -> None:
+        """Fetch paper details referenced by a mention URL.
+
+        Parameters
+        ----------
+        paper_mention_url : str
+            Mention URL that resolves to a paper resource.
+
+        Returns
+        -------
+        Any
+            Decoded JSON payload returned by the API.
+        """
         paper_api: str = f"{paper_mention_url}?mailto={self.email}"
         self.logger.info("Sending GET request to %s", paper_api)
         resp: Response = self.session.get(

@@ -1,23 +1,37 @@
+"""Transform raw JOSS issue payloads into normalized table records."""
+
 import re
 from collections import defaultdict
 from json import dumps
 from logging import Logger
 
-from rh.interfaces import TransformInterface
-from rh.joss import HTTP_HEAD_TIMEOUT, JOSSGHIssue, JOSSPaperProjectIssue
-from rh.logger import JOSSLogger
 from progress.bar import Bar
 from requests.adapters import HTTPAdapter, Retry
 from requests.exceptions import RequestException
 from requests.sessions import Session
 
+from rh.interfaces import TransformInterface
+from rh.joss import HTTP_HEAD_TIMEOUT, JOSSGHIssue, JOSSPaperProjectIssue
+from rh.logger import JOSSLogger
+
 
 class JOSSTransform(TransformInterface):
+    """Transformer for JOSS GitHub issue payloads.
+
+    Parameters
+    ----------
+    joss_logger : JOSSLogger
+        Application logger wrapper.
+    resolve_joss_url : bool, default=False
+        Whether to resolve each accepted paper URL via HTTP redirects.
+    """
+
     def __init__(
         self,
         joss_logger: JOSSLogger,
         resolve_joss_url: bool = False,
     ) -> None:
+        """Initialize transformer settings and logging."""
         self.logger: Logger = joss_logger.get_logger()
         self.resolve_joss_url: bool = resolve_joss_url
 
@@ -25,6 +39,18 @@ class JOSSTransform(TransformInterface):
         self,
         issues: list[dict],
     ) -> list[JOSSGHIssue]:
+        """Normalize raw GitHub issue payloads for storage.
+
+        Parameters
+        ----------
+        issues : list[dict]
+            Raw issue payloads returned by the GitHub API.
+
+        Returns
+        -------
+        list[JOSSGHIssue]
+            Normalized issue records mapped to ``_joss_github_issues`` columns.
+        """
         data: list[JOSSGHIssue] = []
 
         with Bar(
@@ -56,6 +82,18 @@ class JOSSTransform(TransformInterface):
 
     @staticmethod
     def _extract_repo_url(body: str) -> str:
+        """Extract repository URL from issue body text.
+
+        Parameters
+        ----------
+        body : str
+            Raw issue body text.
+
+        Returns
+        -------
+        str
+            Repository URL when present, otherwise an empty string.
+        """
         data: str = ""
 
         repo_match = re.search(
@@ -74,6 +112,18 @@ class JOSSTransform(TransformInterface):
 
     @staticmethod
     def _extract_joss_url(body: str) -> str:
+        """Extract the JOSS paper URL from issue status badge markdown.
+
+        Parameters
+        ----------
+        body : str
+            Raw issue body text.
+
+        Returns
+        -------
+        str
+            Parsed JOSS URL, or an empty string if missing.
+        """
         # JOSS URL from status badge: [![status](...)](URL)
         joss_url_match = re.search(
             r"\[!\[status\]\([^)]+\)\]\((https?://joss\.theoj\.org/papers/[^)]+)\)",
@@ -82,6 +132,18 @@ class JOSSTransform(TransformInterface):
         return joss_url_match.group(1) if joss_url_match else ""
 
     def _resolve_joss_url(self, url: str) -> str:
+        """Resolve a JOSS URL to its final redirect target.
+
+        Parameters
+        ----------
+        url : str
+            Source JOSS URL to resolve.
+
+        Returns
+        -------
+        str
+            Final resolved URL, or the original URL on request failure.
+        """
         session: Session = Session()
 
         # Define exponential backoff strategy
@@ -111,6 +173,19 @@ class JOSSTransform(TransformInterface):
     def normalize_joss_paper_project_issues(
         self, issues: list[JOSSGHIssue]
     ) -> list[JOSSPaperProjectIssue]:
+        """Build accepted paper mappings from normalized JOSS issues.
+
+        Parameters
+        ----------
+        issues : list[JOSSGHIssue]
+            Normalized issue rows from :meth:`normalize_joss_gh_issues`.
+
+        Returns
+        -------
+        list[JOSSPaperProjectIssue]
+            Accepted paper project mappings for
+            ``_joss_paper_project_issues``.
+        """
         paper_project_id: int = 0
         data: list[JOSSPaperProjectIssue] = []
 
@@ -181,6 +256,18 @@ class JOSSTransform(TransformInterface):
         return data
 
     def transform_data(self, data: list[dict]) -> dict[str, list]:
+        """Transform extracted issue payloads into load-ready table payloads.
+
+        Parameters
+        ----------
+        data : list[dict]
+            Raw issue payloads from the extractor.
+
+        Returns
+        -------
+        dict[str, list]
+            Mapping of table names to normalized row dictionaries.
+        """
         normalized_data: dict[str, list] = defaultdict(list)
         dict_tool = lambda foo: [bar.model_dump() for bar in foo]
 

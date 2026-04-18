@@ -1,3 +1,5 @@
+"""Coordinate extract-transform-load execution for Awesome data."""
+
 from json import dump
 
 from rh.db import DB
@@ -9,6 +11,20 @@ from rh.logger import JOSSLogger
 
 
 class JOSSRunner:
+    """Orchestrate the Ecosyste.ms Awesome ETL pipeline.
+
+    Parameters
+    ----------
+    joss_logger : JOSSLogger
+        Application logger wrapper.
+    db : DB
+        Target database connection and schema manager.
+    email : str
+        Contact email supplied to the upstream API via ``mailto``.
+    resolve_urls : bool, default=False
+        Reserved option kept for CLI/API parity.
+    """
+
     def __init__(
         self,
         joss_logger: JOSSLogger,
@@ -16,6 +32,7 @@ class JOSSRunner:
         email: str,
         resolve_urls: bool = False,
     ) -> None:
+        """Create extractor component for the Awesome pipeline."""
         self.extract: AwesomeExtract = AwesomeExtract(
             joss_logger=joss_logger,
             email=email,
@@ -26,6 +43,7 @@ class JOSSRunner:
         # self.load: PapersLoad = PapersLoad(joss_logger=joss_logger, db=db)
 
     def run(self) -> None:
+        """Execute currently implemented Awesome extraction workflow."""
         data: list[dict] = self.extract.download_data()
         from pprint import pprint as print
 

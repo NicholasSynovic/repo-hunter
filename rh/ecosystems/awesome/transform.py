@@ -1,25 +1,49 @@
+"""Transform Awesome API payloads into normalized table records."""
+
 from collections import defaultdict
 from json import dumps
 from logging import Logger
 from urllib.parse import unquote
 
+from progress.bar import Bar
+
 from rh.ecosystems.papers import PapersMention, PapersProject
 from rh.interfaces import TransformInterface
 from rh.logger import JOSSLogger
-from progress.bar import Bar
 
 
 class PapersTransform(TransformInterface):
+    """Transformer for Ecosyste.ms Awesome extract payloads.
+
+    Parameters
+    ----------
+    joss_logger : JOSSLogger
+        Application logger wrapper.
+    """
+
     def __init__(
         self,
         joss_logger: JOSSLogger,
     ) -> None:
+        """Initialize the transformer logger."""
         self.logger: Logger = joss_logger.get_logger()
 
     def normalize_paper_projects(
         self,
         projects: list[dict],
     ) -> list[PapersProject]:
+        """Normalize list-project payloads for ``_ecosystems_projects``.
+
+        Parameters
+        ----------
+        projects : list[dict]
+            Raw list-project records returned by the Awesome API.
+
+        Returns
+        -------
+        list[PapersProject]
+            Normalized project rows.
+        """
         data: list[PapersProject] = []
 
         with Bar(
@@ -54,6 +78,18 @@ class PapersTransform(TransformInterface):
         self,
         mentions: list[dict],
     ) -> list[PapersMention]:
+        """Normalize mention-like payloads for ``_ecosystems_mentions``.
+
+        Parameters
+        ----------
+        mentions : list[dict]
+            Raw mention records associated with Awesome projects.
+
+        Returns
+        -------
+        list[PapersMention]
+            Normalized mention rows with DOI values.
+        """
         data: list[PapersMention] = []
 
         with Bar(
@@ -80,6 +116,18 @@ class PapersTransform(TransformInterface):
         return data
 
     def transform_data(self, data: list[dict]) -> dict[str, list]:
+        """Transform extracted payload bundle into table-keyed row mappings.
+
+        Parameters
+        ----------
+        data : list[dict]
+            Extractor payload list containing ``projects`` and ``mentions``.
+
+        Returns
+        -------
+        dict[str, list]
+            Mapping from table names to normalized row dictionaries.
+        """
         normalized_data: dict[str, list] = defaultdict(list)
         dict_tool = lambda foo: [bar.model_dump() for bar in foo]
 
