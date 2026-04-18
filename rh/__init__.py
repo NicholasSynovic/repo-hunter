@@ -1,1 +1,1 @@
-APPLICATION_NAME: str = "joss"
+APPLICATION_NAME: str = "rh"

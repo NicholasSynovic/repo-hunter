@@ -2,9 +2,9 @@ from logging import Logger
 
 from fastcore.foundation import AttrDict, L
 from ghapi.all import GhApi
-from joss.interfaces import ExtractInterface
-from joss.joss import GITHUB_REPO_OWNER, GITHUB_REPO_PROJECT, HTTP_POST_TIMEOUT
-from joss.logger import JOSSLogger
+from rh.interfaces import ExtractInterface
+from rh.joss import GITHUB_REPO_OWNER, GITHUB_REPO_PROJECT, HTTP_POST_TIMEOUT
+from rh.logger import JOSSLogger
 from progress.spinner import Spinner
 
 

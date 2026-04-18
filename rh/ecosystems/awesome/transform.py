@@ -3,9 +3,9 @@ from json import dumps
 from logging import Logger
 from urllib.parse import unquote
 
-from joss.ecosystems.papers import PapersMention, PapersProject
-from joss.interfaces import TransformInterface
-from joss.logger import JOSSLogger
+from rh.ecosystems.papers import PapersMention, PapersProject
+from rh.interfaces import TransformInterface
+from rh.logger import JOSSLogger
 from progress.bar import Bar
 
 

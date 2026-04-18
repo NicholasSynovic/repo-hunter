@@ -3,9 +3,9 @@ from collections import defaultdict
 from json import dumps
 from logging import Logger
 
-from joss.interfaces import TransformInterface
-from joss.joss import HTTP_HEAD_TIMEOUT, JOSSGHIssue, JOSSPaperProjectIssue
-from joss.logger import JOSSLogger
+from rh.interfaces import TransformInterface
+from rh.joss import HTTP_HEAD_TIMEOUT, JOSSGHIssue, JOSSPaperProjectIssue
+from rh.logger import JOSSLogger
 from progress.bar import Bar
 from requests.adapters import HTTPAdapter, Retry
 from requests.exceptions import RequestException

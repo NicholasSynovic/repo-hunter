@@ -4,9 +4,9 @@
 
 from logging import Logger
 
-from joss.ecosystems.api.awesome import AwesomeAPI
-from joss.interfaces import ExtractInterface
-from joss.logger import JOSSLogger
+from rh.ecosystems.api.awesome import AwesomeAPI
+from rh.interfaces import ExtractInterface
+from rh.logger import JOSSLogger
 from progress.bar import Bar
 
 

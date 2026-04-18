@@ -3,8 +3,8 @@ from json import dump
 from rh.db import DB
 from rh.ecosystems.awesome.extract import AwesomeExtract
 
-# from joss.ecosystems.papers.load import PapersLoad
-# from joss.ecosystems.papers.transform import PapersTransform
+# from rh.ecosystems.papers.load import PapersLoad
+# from rh.ecosystems.papers.transform import PapersTransform
 from rh.logger import JOSSLogger
 
 

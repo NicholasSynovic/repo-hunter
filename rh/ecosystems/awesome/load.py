@@ -1,8 +1,8 @@
 from logging import Logger
 
-from joss.db import DB
-from joss.interfaces import LoadInterface
-from joss.logger import JOSSLogger
+from rh.db import DB
+from rh.interfaces import LoadInterface
+from rh.logger import JOSSLogger
 from pandas import DataFrame
 from progress.bar import Bar
 

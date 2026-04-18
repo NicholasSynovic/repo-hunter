@@ -1,7 +1,7 @@
 from logging import Logger
 from pathlib import Path
 
-from joss.logger import JOSSLogger
+from rh.logger import JOSSLogger
 from sqlalchemy import (
     Boolean,
     Column,

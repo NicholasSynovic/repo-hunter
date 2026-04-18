@@ -1,5 +1,5 @@
 [project]
-name = "joss"
+name = "rh"
 version = "0.2.0"
 description = "Journal of Open Source Software (JOSS) dataset"
 authors = [{ name = "Nicholas M. Synovic", email = "nicholas.synovic@gmail.com" }]
