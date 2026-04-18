@@ -14,6 +14,39 @@ class CLI:
     """Reusable argument definitions for JOSS sub-commands."""
 
     @staticmethod
+    def parse_filter_count(value: str) -> int:
+        """
+        Parse a repository filter count allowing ``-1`` as a sentinel.
+
+        Parameters
+        ----------
+        value : str
+            Raw argument value provided on the command line.
+
+        Returns
+        -------
+        int
+            Parsed integer value.
+
+        Raises
+        ------
+        argparse.ArgumentTypeError
+            If ``value`` is not an integer or is less than ``-1``.
+
+        """
+        try:
+            parsed: int = int(value)
+        except ValueError as exc:
+            msg = f"Expected an integer value, got: {value}"
+            raise argparse.ArgumentTypeError(msg) from exc
+
+        if parsed < -1:
+            msg = f"Value must be >= -1, got: {parsed}"
+            raise argparse.ArgumentTypeError(msg)
+
+        return parsed
+
+    @staticmethod
     def add_max_pages_argument(parser: argparse.ArgumentParser) -> None:
         """
         Add the ``--max-pages`` optional argument to a parser.
@@ -198,6 +231,47 @@ class CLI:
         )
         self.add_out_file_argument(parser=awesome_parser, required=True)
         self.add_email_argument(parser=awesome_parser, required=True)
+
+        gh_parser = subparsers.add_parser(
+            "gh",
+            help="Search GitHub repositories using configurable thresholds.",
+        )
+        gh_parser.add_argument(
+            "--star-count",
+            type=self.parse_filter_count,
+            default=-1,
+            help="Minimum star count filter. Use -1 to disable.",
+        )
+        gh_parser.add_argument(
+            "--fork-count",
+            type=self.parse_filter_count,
+            default=-1,
+            help="Minimum fork count filter. Use -1 to disable.",
+        )
+        gh_parser.add_argument(
+            "--watcher-count",
+            type=self.parse_filter_count,
+            default=-1,
+            help="Minimum watcher count filter. Use -1 to disable.",
+        )
+        gh_parser.add_argument(
+            "--issue-count",
+            type=self.parse_filter_count,
+            default=-1,
+            help="Minimum issue count filter. Use -1 to disable.",
+        )
+        gh_parser.add_argument(
+            "--age-months",
+            type=self.parse_filter_count,
+            default=-1,
+            help="Maximum repository age in months. Use -1 to disable.",
+        )
+        gh_parser.add_argument(
+            "--pr-count",
+            type=self.parse_filter_count,
+            default=-1,
+            help="Minimum pull request count filter. Use -1 to disable.",
+        )
 
         # Parse args
         return parser.parse_args()

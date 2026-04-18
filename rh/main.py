@@ -44,6 +44,19 @@ def main() -> int:
             email=args.email,
         ).run()
 
+    elif args.dataset == "gh":
+        logger.get_logger().info(
+            "GitHub repository search is not implemented yet. "
+            "Received filters: stars=%d forks=%d watchers=%d issues=%d "
+            "age_months=%d prs=%d",
+            args.star_count,
+            args.fork_count,
+            args.watcher_count,
+            args.issue_count,
+            args.age_months,
+            args.pr_count,
+        )
+
     else:
         sys.exit(1)
 

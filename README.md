@@ -19,6 +19,7 @@ Current supported sources:
 - JOSS review tracker issues (`rh joss`)
 - Ecosyste.ms Papers API (`rh papers`)
 - Ecosyste.ms Awesome API (`rh awesome`)
+- GitHub repository search filters (`rh gh`)
 
 ## Prerequisites
 
@@ -127,6 +128,7 @@ Example runs:
 rh joss --out-file /tmp/joss.db
 rh papers --out-file /tmp/papers.db --email you@example.com
 rh awesome --out-file /tmp/awesome.db --email you@example.com
+rh gh --star-count 200 --fork-count 50 --watcher-count 25 --issue-count 10 --age-months 24 --pr-count 5
 ```
 
 ## CLI Subcommands and Options
@@ -174,4 +176,29 @@ Example:
 
 ```bash
 rh awesome --out-file data/awesome.db --email you@example.com
+```
+
+### `rh gh`
+
+Searches for GitHub repositories that match configurable numeric thresholds.
+
+Options:
+
+- `--star-count` (optional, default: `-1`): minimum stars; `-1` disables filter.
+- `--fork-count` (optional, default: `-1`): minimum forks; `-1` disables filter.
+- `--watcher-count` (optional, default: `-1`): minimum watchers; `-1` disables filter.
+- `--issue-count` (optional, default: `-1`): minimum issues; `-1` disables filter.
+- `--age-months` (optional, default: `-1`): maximum repository age in months; `-1` disables filter.
+- `--pr-count` (optional, default: `-1`): minimum pull requests; `-1` disables filter.
+
+Validation:
+
+- All `rh gh` numeric filters must be integers greater than or equal to `-1`.
+
+Examples:
+
+```bash
+rh gh
+rh gh --star-count 500 --fork-count 100
+rh gh --age-months 12 --issue-count 20 --pr-count 10
 ```
