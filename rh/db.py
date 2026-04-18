@@ -1,5 +1,7 @@
 """Database bootstrap and schema registration utilities."""
 
+# Copyright (c) 2025 Nicholas M. Synovic
+
 from logging import Logger
 from pathlib import Path
 
@@ -19,7 +21,8 @@ from rh.logger import JOSSLogger
 
 
 class DB:
-    """SQLite database wrapper used by ETL loaders.
+    """
+    SQLite database wrapper used by ETL loaders.
 
     Parameters
     ----------
@@ -27,6 +30,7 @@ class DB:
         Logger wrapper used to obtain the shared application logger.
     db_path : Path
         Path to the SQLite database file.
+
     """
 
     def __init__(self, joss_logger: JOSSLogger, db_path: Path) -> None:
@@ -41,31 +45,34 @@ class DB:
 
     def _create_tables(self) -> None:
         """Create all expected tables when they do not already exist."""
-        _: Table = Table(
-            "_joss_github_issues",
+        _: Table = Table(  # Table to track application runs
+            "_runs",
             self.metadata,
             Column("id", Integer, primary_key=True),
+            Column("subparser", String),
+            Column("started_at_unix", Integer),
+            Column("finished_at_unix", Integer),
+            Column("status", String),
+            Column("resolve_urls", Boolean),
+            Column("issues_fetched_count", Integer),
+            Column("issues_written_count", Integer),
+            Column("paper_project_rows_count", Integer),
+            Column("error_message", String),
+        )
+
+        _: Table = Table(  # Table to store JOSS Github Issues
+            "_joss_snapshots",
+            self.metadata,
+            Column("id", Integer, primary_key=True),
+            Column("run_id", Integer, ForeignKey("_runs.id")),
+            Column("joss_github_issue_id", Integer),
             Column("is_pull_request", Boolean),
             Column("body", String),
             Column("creator", String),
             Column("state", String),
             Column("labels", String),
             Column("json_str", String),
-        )
-
-        _: Table = Table(
-            "_joss_paper_project_issues",
-            self.metadata,
-            Column("id", Integer, primary_key=True),
-            Column(
-                "joss_github_issue_id",
-                Integer,
-                ForeignKey("_joss_github_issues.id"),
-            ),
-            Column("github_repo_url", String),
-            Column("joss_url", String),
-            Column("joss_resolved_url", String),
-            Column("journal", String),
+            Column("snapshot_at_unix", Integer),
         )
 
         _: Table = Table(
