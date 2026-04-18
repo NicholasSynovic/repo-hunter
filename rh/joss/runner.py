@@ -1,8 +1,8 @@
-from joss.db import DB
-from joss.joss.extract import JOSSExtract
-from joss.joss.load import JOSSLoad
-from joss.joss.transform import JOSSTransform
-from joss.logger import JOSSLogger
+from rh.db import DB
+from rh.joss.extract import JOSSExtract
+from rh.joss.load import JOSSLoad
+from rh.joss.transform import JOSSTransform
+from rh.logger import JOSSLogger
 
 
 class JOSSRunner:

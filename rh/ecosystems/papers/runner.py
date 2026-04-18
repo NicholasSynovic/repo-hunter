@@ -1,10 +1,10 @@
 from json import dump
 
-from joss.db import DB
-from joss.ecosystems.papers.extract import PapersExtract
-from joss.ecosystems.papers.load import PapersLoad
-from joss.ecosystems.papers.transform import PapersTransform
-from joss.logger import JOSSLogger
+from rh.db import DB
+from rh.ecosystems.papers.extract import PapersExtract
+from rh.ecosystems.papers.transform import PapersTransform
+from rh.ecosystems.papers.load import PapersLoad
+from rh.logger import JOSSLogger
 
 
 class JOSSRunner:

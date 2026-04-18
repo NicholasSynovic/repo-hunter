@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from joss.utils import JOSSUtils
+from rh.utils import JOSSUtils
 
 
 class JOSSLogger:

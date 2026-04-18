@@ -4,13 +4,13 @@
 
 import sys
 
-from joss import APPLICATION_NAME
-from joss.cli import CLI
-from joss.db import DB
-from joss.ecosystems.awesome.runner import JOSSRunner as AwesomeRunner
-from joss.ecosystems.papers.runner import JOSSRunner as PapersRunner
-from joss.joss.runner import JOSSRunner
-from joss.logger import JOSSLogger
+from rh import APPLICATION_NAME
+from rh.cli import CLI
+from rh.db import DB
+from rh.ecosystems.awesome.runner import JOSSRunner as AwesomeRunner
+from rh.ecosystems.papers.runner import JOSSRunner as PapersRunner
+from rh.joss.runner import JOSSRunner
+from rh.logger import JOSSLogger
 
 
 def main() -> int:

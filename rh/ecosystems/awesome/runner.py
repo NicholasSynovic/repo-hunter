@@ -1,11 +1,11 @@
 from json import dump
 
-from joss.db import DB
-from joss.ecosystems.awesome.extract import AwesomeExtract
+from rh.db import DB
+from rh.ecosystems.awesome.extract import AwesomeExtract
 
 # from joss.ecosystems.papers.load import PapersLoad
 # from joss.ecosystems.papers.transform import PapersTransform
-from joss.logger import JOSSLogger
+from rh.logger import JOSSLogger
 
 
 class JOSSRunner:
