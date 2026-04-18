@@ -7,7 +7,7 @@ import os
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
-from joss import APPLICATION_NAME
+from rh import APPLICATION_NAME
 
 
 class CLI:

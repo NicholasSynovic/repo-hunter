@@ -1,14 +1,13 @@
 from logging import Logger
 
-from pandas import DataFrame
-from progress.bar import Bar
-
 from joss.db import DB
 from joss.interfaces import LoadInterface
 from joss.logger import JOSSLogger
+from pandas import DataFrame
+from progress.bar import Bar
 
 
-class PapersLoad(LoadInterface):
+class JOSSLoad(LoadInterface):
     def __init__(self, joss_logger: JOSSLogger, db: DB) -> None:
         self.db: DB = db
         self.logger: Logger = joss_logger.get_logger()

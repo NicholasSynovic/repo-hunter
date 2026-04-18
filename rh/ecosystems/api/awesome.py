@@ -2,10 +2,9 @@ import re
 from logging import Logger
 from re import Match
 
+from joss.ecosystems.api import HTTP_GET_TIMEOUT
 from requests import Response, Session
 from requests.adapters import HTTPAdapter, Retry
-
-from joss.ecosystems.api import HTTP_GET_TIMEOUT
 
 
 class AwesomeAPI:

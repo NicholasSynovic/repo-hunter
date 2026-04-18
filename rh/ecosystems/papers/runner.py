@@ -2,8 +2,8 @@ from json import dump
 
 from joss.db import DB
 from joss.ecosystems.papers.extract import PapersExtract
-from joss.ecosystems.papers.transform import PapersTransform
 from joss.ecosystems.papers.load import PapersLoad
+from joss.ecosystems.papers.transform import PapersTransform
 from joss.logger import JOSSLogger
 
 

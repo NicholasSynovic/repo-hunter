@@ -4,11 +4,10 @@
 
 from logging import Logger
 
-from progress.bar import Bar
-
 from joss.ecosystems.api.awesome import AwesomeAPI
 from joss.interfaces import ExtractInterface
 from joss.logger import JOSSLogger
+from progress.bar import Bar
 
 
 class AwesomeExtract(ExtractInterface):

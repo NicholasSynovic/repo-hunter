@@ -4,11 +4,10 @@
 
 from logging import Logger
 
-from progress.bar import Bar
-
 from joss.ecosystems.api.papers import PapersAPI
 from joss.interfaces import ExtractInterface
 from joss.logger import JOSSLogger
+from progress.bar import Bar
 
 
 class PapersExtract(ExtractInterface):

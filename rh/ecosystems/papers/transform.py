@@ -3,11 +3,10 @@ from json import dumps
 from logging import Logger
 from urllib.parse import unquote
 
-from progress.bar import Bar
-
 from joss.ecosystems.papers import PapersMention, PapersProject
 from joss.interfaces import TransformInterface
 from joss.logger import JOSSLogger
+from progress.bar import Bar
 
 
 class PapersTransform(TransformInterface):
