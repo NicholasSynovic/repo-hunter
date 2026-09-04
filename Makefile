@@ -4,6 +4,9 @@ build:
 	uv build
 	uv pip install dist/*.tar.gz
 
+clean:
+	rm -rf dist
+
 create-dev:
 	pre-commit install
 	pre-commit autoupdate

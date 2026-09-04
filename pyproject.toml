@@ -1,5 +1,5 @@
 [project]
-name = "Repo Hunter"
+name = "rh"
 version = "0.2.0"
 description = "Search utility for finding source code repositories"
 authors = [{ name = "Nicholas M. Synovic", email = "nicholas.synovic@gmail.com" }]
@@ -25,14 +25,14 @@ classifiers = [
     "Topic :: Utilities"
 ]
 dependencies = [
-    "requests",
-    "progress",
     "seaborn>=0.13.2",
     "matplotlib>=3.10.8",
     "pydantic>=2.12.5",
     "ghapi>=1.0.10",
     "sqlalchemy>=2.0.46",
     "pandas>=3.0.0",
+    "requests>=2.32.5",
+    "progress>=1.6.1",
 ]
 
 [build-system]
