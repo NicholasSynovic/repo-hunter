@@ -1,22 +1,15 @@
-"""Entry point for the standalone JOSS ``joss`` command."""
-
-# Copyright (c) 2025 Nicholas M. Synovic
-
 import os
 import sys
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
 from joss import APPLICATION_NAME
-from joss.cli import APPLICATION_NAME
 from joss.db import DB
-from joss.runner import JOSSRunner
 
 
 def main(args: Namespace) -> int:
-    resolve_urls: bool = args.resolve_urls
-    db: DB = DB(joss_logger=logger, db_path=args.out_file)
-    JOSSRunner(joss_logger=logger, db=db, resolve_urls=resolve_urls).run()
+    db: DB = DB(db_path=args.out_file)
+    db.create_tables()
 
     sys.exit(0)
 
@@ -26,7 +19,7 @@ if __name__ == "__main__":
 
     parser: ArgumentParser = ArgumentParser(
         prog=APPLICATION_NAME,
-        description="",
+        description="A command-line toolkit for building local SQLite datasets from open-source repository ecosystems.",
         epilog="Created by Nicholas M. Synovic",
     )
     parser.add_argument(

@@ -14,6 +14,9 @@ from sqlalchemy import (
 
 class DB:
     def __init__(self, db_path: Path) -> None:
+        if db_path.exists() and db_path.is_file():
+            raise RuntimeError(f"{db_path} already exists")
+
         self._path: Path = db_path
 
         self.engine: Engine = create_engine(url=f"sqlite:///{self._path}")

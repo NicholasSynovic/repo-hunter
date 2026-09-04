@@ -1,114 +1,136 @@
-"""Extract JOSS issue records from the GitHub API."""
+from collections.abc import Generator
+from json import dumps
 
-from logging import Logger
+from requests import Response, post
 
-from fastcore.foundation import AttrDict, L
-from ghapi.all import GhApi
-from progress.spinner import Spinner
-
-from joss import GITHUB_REPO_OWNER, GITHUB_REPO_PROJECT
-from joss.interfaces import ExtractInterface
-from joss.logger import JOSSLogger
+from joss import GITHUB_REPO_OWNER, GITHUB_REPO_PROJECT, HTTP_POST_TIMEOUT
 
 
-class JOSSExtract(ExtractInterface):
-    """Extractor for JOSS review issues hosted on GitHub.
+class Extract:
+    def __init__(
+        self,
+        github_token: str,
+        github_owner: str = GITHUB_REPO_OWNER,
+        github_repo: str = GITHUB_REPO_PROJECT,
+    ) -> None:
+        self.responses: list[Response] = []
+        self.api_endpoint: str = "https://api.github.com/graphql"
 
-    Parameters
-    ----------
-    joss_logger : JOSSLogger
-        Application logger wrapper used to emit progress and diagnostics.
-    """
+        self.static_variables: dict[str, str | None] = {
+            "owner": github_owner,
+            "name": github_repo,
+            "cursor": None,
+        }
 
-    def __init__(self, joss_logger: JOSSLogger) -> None:
-        """Initialize API client and extraction settings."""
-        self._per_page: int = 100
+        self.headers: dict[str, str] = {
+            "Authorization": f"Bearer {github_token}",
+            "Content-Type": "application/json",
+        }
 
-        self.logger: Logger = joss_logger.get_logger()
-        # Assumes setting the `GITHUB_TOKEN` environment variable
-        self.gh: GhApi = GhApi(
-            owner=GITHUB_REPO_OWNER,
-            repo=GITHUB_REPO_PROJECT,
+        self.query: str = """
+        query($owner: String!, $name: String!, $cursor: String) {
+          repository(owner: $owner, name: $name) {
+            issues(first: 100, after: $cursor, states: [OPEN, CLOSED]) {
+              pageInfo {
+                hasNextPage
+                endCursor
+              }
+              nodes {
+                databaseId
+                body
+                state
+                author {
+                  login
+                }
+                labels(first: 100) {
+                  nodes {
+                    name
+                  }
+                }
+              }
+            }
+          }
+        }
+        """
+
+    @staticmethod
+    def _get_resp_page_information(resp: Response) -> tuple[bool, str]:
+        page_info: dict = resp.json()["data"]["repository"]["issues"]["pageInfo"]
+        return (page_info["hasNextPage"], page_info["endCursor"])
+
+    def recursive_query_graphql(
+        self, cursor: str | None = None, has_next_page: bool = True
+    ) -> None:
+        # If there is no next page, break out of the recursion tree
+        if has_next_page is False:
+            return
+
+        # Update the variables to the GraphQL query with the cursor to the next
+        # page
+        self.static_variables["cursor"] = cursor
+
+        # Make the HTTP POST request
+        resp: Response = post(
+            url=self.api_endpoint,
+            json={"query": self.query, "variables": self.static_variables},
+            headers=self.headers,
+            timeout=HTTP_POST_TIMEOUT,
         )
 
-    def __distill_fastcore(self, obj):
-        """Recursively convert Fastcore containers into plain Python values.
+        # Error out if the resp code is not 200
+        if resp.status_code != 200:
+            raise RuntimeError(
+                f"GraphQL request failed (Status {resp.status_code}): {resp.text}"
+            )
 
-        Parameters
-        ----------
-        obj : Any
-            Value that may contain nested ``AttrDict`` or ``L`` containers.
+        # Append the respone to the global responses list
+        self.responses.append(resp)
 
-        Returns
-        -------
-        Any
-            Equivalent structure composed only of built-in ``dict`` and ``list``
-            containers where possible.
-        """
-        # Handle AttrDict (or any dict-like object)
-        if isinstance(obj, (dict, AttrDict)):
-            return {k: self.__distill_fastcore(v) for k, v in obj.items()}
+        # Get the status of the next page
+        has_next_page, cursor = self._get_resp_page_information(resp=resp)
 
-        # Handle L (or any list/tuple)
-        elif isinstance(obj, (list, L, tuple)):
-            return [self.__distill_fastcore(v) for v in obj]
+        # Run the recursion again with updated parameters
+        self.recursive_query_graphql(cursor=cursor, has_next_page=has_next_page)
 
-        # Return everything else as-is
-        return obj
+    def extract(self) -> list[dict]:
+        # Subroutine to extract fields from a requests.Response.json() object
+        def _normalize_node(node: dict) -> dict:
+            # Map fields to requested database columns
+            github_issue_id = node.get("databaseId")
+            body = node.get("body", "")
+            state = node.get("state")
+            author_obj = node.get("author")
+            creator = author_obj.get("login") if author_obj else None
 
-    def _query_api(self, page: int = 1) -> list[AttrDict]:
-        """Request one issues page from the JOSS GitHub repository.
+            # Extract label names and serialize to string format for SQLite
+            labels_nodes = node.get("labels", {}).get("nodes", [])
+            label_names = [l["name"] for l in labels_nodes if l and "name" in l]
+            labels_str = dumps(label_names)
 
-        Parameters
-        ----------
-        page : int, default=1
-            One-indexed issue page to request.
+            return {
+                "github_issue_id": github_issue_id,
+                "body": body,
+                "creator": creator,
+                "state": state,
+                "labels": labels_str,
+            }
 
-        Returns
-        -------
-        list[AttrDict]
-            Distilled issue payloads for the requested page.
-        """
-        self.logger.info(
-            "Logging page %d of %s/%s",
-            page,
-            GITHUB_REPO_OWNER,
-            GITHUB_REPO_PROJECT,
-        )
-        issues: L = self.gh.issues.list_for_repo(
-            page=page,
-            per_page=self._per_page,
-            state="all",
-            sort="created",
-            direction="asc",
-        )
+        # If the POST requests have not been made and responses collected, run
+        if len(self.responses) == 0:
+            self.recursive_query_graphql()
 
-        return [self.__distill_fastcore(issue) for issue in issues]
-
-    def download_data(self) -> list[dict]:
-        """Download all issues for the configured GitHub repository.
-
-        Returns
-        -------
-        list[dict]
-            Complete issue list across all fetched pages.
-        """
-        page_counter: int = 1
+        # Create an empty list to store data
         data: list[dict] = []
 
-        with Spinner(
-            message=f"Getting issues for {GITHUB_REPO_OWNER}/{GITHUB_REPO_PROJECT}... ",
-        ) as spinner:
-            while True:
-                issues: list[dict] = self._query_api(page=page_counter)
-                data.extend(issues)
+        # Create a Generator of lists of nodes from each requests.Response.json object
+        nodes_generator: Generator = (
+            resp.json()["data"]["repository"]["issues"]["nodes"]
+            for resp in self.responses
+        )
 
-                if len(issues) < self._per_page:
-                    break
-
-                page_counter += 1
-                spinner.next()
-
-        self.logger.info("Number of issues collected: %d", len(data))
+        # For each list of nodes, normalize the content and write to a dictionary
+        nodes: list[dict]
+        for nodes in nodes_generator:
+            data.extend(map(_normalize_node, nodes))
 
         return data
