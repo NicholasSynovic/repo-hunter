@@ -1,33 +1,41 @@
+<!-- prettier-ignore -->
+<div align="center">
+
 # Repo Hunter
 
-Repo Hunter is a command-line data collection toolkit for building local
-SQLite datasets from open-source repository ecosystems.
+A command-line toolkit for building local SQLite datasets from open-source repository ecosystems.
 
-The Python package in this repository is currently named `joss`, and the CLI
-entrypoint command is `rh`.
+[![License](docs/license_badge.svg)](LICENSE)
 
-## What It Does
+[Overview](#overview) • [Getting started](#getting-started) • [Usage](#usage) • [Development](#development) • [Project structure](#project-structure) • [License](#license)
 
-Repo Hunter provides ETL-style commands that:
+![Repo Hunter mascot](docs/hero.jpeg)
 
-- extract upstream project/review metadata
-- transform records into normalized table-oriented structures
-- load data into local SQLite databases
+</div>
 
-Current supported sources:
+## Overview
 
-- JOSS review tracker issues (`rh joss`)
-- Ecosyste.ms Papers API (`rh papers`)
-- Ecosyste.ms Awesome API (`rh awesome`)
-- GitHub repository search filters (`rh gh`)
+Repo Hunter provides ETL-style commands for researchers and developers who need
+datasets of open-source software projects:
 
-## Prerequisites
+- **Extract** upstream project and review metadata from public ecosystem APIs
+- **Transform** records into normalized, table-oriented structures
+- **Load** the results into a local SQLite database
+
+## Features
+
+- **JOSS review tracker**: collect all Journal of Open Source Software review issues.
+- **Ecosyste.ms Papers**: collect project and mention data from the Ecosyste.ms Papers API.
+- **Ecosyste.ms Awesome**: collect list and project data from the Ecosyste.ms Awesome API.
+- **GitHub repository search**: query GitHub for repositories matching configurable thresholds.
+
+## Getting started
+
+Prerequisites:
 
 - Python `~=3.13`
 - [`uv`](https://docs.astral.sh/uv/) for dependency and build management
-- `pre-commit` (installed automatically by `make create-dev`)
-
-## Development Setup
+- `pre-commit` (used by `make create-dev`)
 
 Preferred setup:
 
@@ -35,12 +43,7 @@ Preferred setup:
 make create-dev
 ```
 
-This runs:
-
-- `pre-commit install`
-- `pre-commit autoupdate`
-- `uv sync`
-- `uv build`
+This runs `pre-commit install`, `pre-commit autoupdate`, and `uv sync`.
 
 Minimal setup:
 
@@ -49,89 +52,13 @@ uv sync
 pre-commit install
 ```
 
-## Build
-
-Recommended build command:
-
-```bash
-make build
-```
-
-Alternative direct build command:
-
-```bash
-uv build
-```
-
-Build notes:
-
-- `make build` updates package version from the latest git tag.
-- Build artifacts are written to `dist/`.
-- `make build` installs the built source dist locally.
-
-## Quality Checks
-
-Run all configured checks:
-
-```bash
-pre-commit run --all-files
-```
-
-Useful targeted checks:
-
-```bash
-uv run ruff check .
-uv run ruff format .
-uv run isort .
-uv run bandit -r joss analysis scripts
-```
-
-Run checks on only changed files:
-
-```bash
-pre-commit run --files <file1> <file2>
-```
-
-## Testing
-
-There is currently no dedicated `tests/` directory in this repository.
-
-When pytest tests are added, use these patterns:
-
-```bash
-uv run pytest
-uv run pytest tests/path/test_module.py
-uv run pytest tests/path/test_module.py::test_name
-uv run pytest tests/path/test_module.py::test_name[param]
-```
-
-## Runtime Requirements
-
-`GITHUB_TOKEN` is required and must be a classic GitHub Personal Access Token
-(PAT) with access needed to query upstream GitHub data.
-
-```bash
-export GITHUB_TOKEN="ghp_your_classic_token_here"
-```
-
-## Running the CLI
+## Usage
 
 Show top-level help:
 
 ```bash
 rh --help
 ```
-
-Example runs:
-
-```bash
-rh joss --out-file /tmp/joss.db
-rh papers --out-file /tmp/papers.db --email you@example.com
-rh awesome --out-file /tmp/awesome.db --email you@example.com
-rh gh --star-count 200 --fork-count 50 --watcher-count 25 --issue-count 10 --age-months 24 --pr-count 5
-```
-
-## CLI Subcommands and Options
 
 ### `rh joss`
 
@@ -141,8 +68,6 @@ Options:
 
 - `-o, --out-file` (required): SQLite database path to write results to.
 - `--resolve-urls` (optional): resolve JOSS paper URLs to final redirected URLs.
-
-Example:
 
 ```bash
 rh joss --out-file data/joss.db --resolve-urls
@@ -157,22 +82,18 @@ Options:
 - `-o, --out-file` (required): SQLite database path to write results to.
 - `--email` (required): contact email passed as the API `mailto` parameter.
 
-Example:
-
 ```bash
 rh papers --out-file data/papers.db --email you@example.com
 ```
 
 ### `rh awesome`
 
-Collects list/project data from the Ecosyste.ms Awesome API.
+Collects list and project data from the Ecosyste.ms Awesome API.
 
 Options:
 
 - `-o, --out-file` (required): SQLite database path to write results to.
 - `--email` (required): contact email passed as the API `mailto` parameter.
-
-Example:
 
 ```bash
 rh awesome --out-file data/awesome.db --email you@example.com
@@ -180,25 +101,66 @@ rh awesome --out-file data/awesome.db --email you@example.com
 
 ### `rh gh`
 
-Searches for GitHub repositories that match configurable numeric thresholds.
+Searches for GitHub repositories matching configurable numeric thresholds.
 
-Options:
+Options (all optional, default `-1`, which disables the filter):
 
-- `--star-count` (optional, default: `-1`): minimum stars; `-1` disables filter.
-- `--fork-count` (optional, default: `-1`): minimum forks; `-1` disables filter.
-- `--watcher-count` (optional, default: `-1`): minimum watchers; `-1` disables filter.
-- `--issue-count` (optional, default: `-1`): minimum issues; `-1` disables filter.
-- `--age-months` (optional, default: `-1`): maximum repository age in months; `-1` disables filter.
-- `--pr-count` (optional, default: `-1`): minimum pull requests; `-1` disables filter.
-
-Validation:
-
-- All `rh gh` numeric filters must be integers greater than or equal to `-1`.
-
-Examples:
+- `--star-count`: minimum stars.
+- `--fork-count`: minimum forks.
+- `--watcher-count`: minimum watchers.
+- `--issue-count`: minimum issues.
+- `--age-months`: maximum repository age in months.
+- `--pr-count`: minimum pull requests.
 
 ```bash
-rh gh
 rh gh --star-count 500 --fork-count 100
-rh gh --age-months 12 --issue-count 20 --pr-count 10
 ```
+
+> [!NOTE]
+> `rh gh` currently executes the search query and reports the number of
+> matching repositories; saving results to a database is not implemented yet.
+
+> [!IMPORTANT]
+> `rh joss` and `rh gh` query GitHub, so they require a classic GitHub
+> Personal Access Token in the environment:
+
+```bash
+export GITHUB_TOKEN="ghp_your_classic_token_here"
+```
+
+## Development
+
+Build the package. This updates the version from the latest git tag, writes
+artifacts to `dist/`, and installs the built source dist locally:
+
+```bash
+make build
+```
+
+Run all configured quality checks (linting, formatting, security scanning):
+
+```bash
+pre-commit run --all-files
+```
+
+Run checks on only changed files:
+
+```bash
+pre-commit run --files <file1> <file2>
+```
+
+Run the tests:
+
+```bash
+uv run pytest
+```
+
+## Project structure
+
+- `rh/` — the Python package and `rh` CLI entry point.
+- `analysis/` — matplotlib/seaborn scripts for plotting JOSS issue data.
+- `scripts/` — helpers for collecting GitHub repository URLs and cloning them.
+
+## License
+
+This project is licensed under the [GNU AGPL v3.0](LICENSE).
