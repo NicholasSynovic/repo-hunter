@@ -1,15 +1,28 @@
 [project]
-name = "rh"
+name = "Repo Hunter"
 version = "0.2.0"
-description = "Journal of Open Source Software (JOSS) dataset"
+description = "Search utility for finding source code repositories"
 authors = [{ name = "Nicholas M. Synovic", email = "nicholas.synovic@gmail.com" }]
 requires-python = "~=3.13"
 readme = "README.md"
 keywords = ["oss", "academic", "dataset", "github-issues", "joss"]
 classifiers = [
-    "Development Status :: 1 - Planning",
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Framework :: Hypothesis",
+    "Framework :: Pytest",
+    "Framework :: Sphinx",
+    "Intended Audience :: Science/Research",
     "License :: OSI Approved :: GNU Affero General Public License v3",
-    "Programming Language :: Python :: 3.13"
+    "Natural Language :: English",
+    "Operating System :: Unix",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Version Control",
+    "Topic :: System :: Archiving",
+    "Topic :: Utilities"
 ]
 dependencies = [
     "requests",
@@ -22,18 +35,43 @@ dependencies = [
     "pandas>=3.0.0",
 ]
 
-[project.urls]
-Homepage = "https://github.com/NicholasSynovic/joss-dataset"
-Repository = "https://github.com/NicholasSynovic/joss-dataset"
-
-[project.scripts]
-rh = "rh.main:main"
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.3",
+    "hypothesis>=6.165.10",
+    "pytest>=9.1.1",
 ]
+
+[project.urls]
+Homepage = "https://github.com/NicholasSynovic/repo-hunter"
+Repository = "https://github.com/NicholasSynovic/repo-hunter"
+
+[project.scripts]
+rh = "rh.main:main"
+
+[tool.bandit]
+exclude_dirs = [
+  "tests",
+  "build",
+  "test_*.py",
+  "*/test_*.py",
+]
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+
+[tool.ruff.lint]
+preview = true
+ignore = ["D203", "D212", "COM812", "S404", "RUF007"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
