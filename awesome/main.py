@@ -3,35 +3,41 @@ from pathlib import Path
 
 from awesome import APPLICATION_NAME
 from awesome.db import DB
-from awesome.etl.extract import AwesomeExtract
-from awesome.etl.load import AwesomeLoad
-from awesome.etl.transform import AwesomeTransform
-from awesome.logger import AwesomeLogger
+from awesome.etl import AwesomeList, ListProject
+from awesome.etl.extract import Extract
+from awesome.etl.load import Load
+from awesome.etl.transform import Transform
 
 
-def setup_db(logger: AwesomeLogger, db_path: Path) -> DB:
-    return DB(logger=logger, db_path=db_path)
+def setup_db(db_path: Path) -> DB:
+    db: DB = DB(db_path=db_path)
+    db.create_tables()
+    return db
 
 
-def extract_data(logger: AwesomeLogger, email: str) -> list[dict[str, list[dict]]]:
-    pipeline_step: AwesomeExtract = AwesomeExtract(logger=logger, email=email)
-    return pipeline_step.download_data()
+def extract_lists(email: str) -> list[AwesomeList]:
+    pipeline_step: Extract = Extract(email=email)
+    return pipeline_step.extract()
 
 
-def transform_data(logger: AwesomeLogger, data: list[dict]) -> dict[str, list]:
-    pipeline_step: AwesomeTransform = AwesomeTransform(logger=logger)
-    return pipeline_step.transform_data(data=data)
+def transform_lists(data: list[AwesomeList], email: str) -> list[ListProject]:
+    pipeline_step: Transform = Transform(email=email)
+    return pipeline_step.transform(data=data)
 
 
-def load_data(logger: AwesomeLogger, data: dict[str, list], db: DB) -> bool:
-    pipeline_step: AwesomeLoad = AwesomeLoad(logger=logger, db=db)
-    return pipeline_step.load_data(data=data)
+def load_lists(
+    lists: list[AwesomeList],
+    projects: list[ListProject],
+    db: DB,
+) -> None:
+    pipeline_step: Load = Load(db=db)
+    pipeline_step.load_data(lists=lists, projects=projects)
 
 
-def main() -> int:
+if __name__ == "__main__":
     parser: ArgumentParser = ArgumentParser(
         prog=APPLICATION_NAME,
-        description="Collect list and project data from the Ecosyste.ms Awesome API.",
+        description="A command-line toolkit for building local SQLite datasets from open-source repository ecosystems.",
         epilog="Created by Nicholas M. Synovic",
     )
     parser.add_argument(
@@ -44,28 +50,18 @@ def main() -> int:
     parser.add_argument(
         "--email",
         required=True,
-        help="Contact email sent to the Awesome API mailto parameter.",
+        help="Contact email sent to the Ecosyste.ms Awesome API mailto parameter.",
     )
     args: Namespace = parser.parse_args()
 
-    # Setup file logging
-    logger: AwesomeLogger = AwesomeLogger(name=__name__)
-    logger.setup_file_logging(prefix=APPLICATION_NAME)
-
     # Setup database tables
-    db: DB = setup_db(logger=logger, db_path=args.out_file)
+    db: DB = setup_db(db_path=args.out_file)
 
-    # Extract data from the Awesome API
-    data: list[dict[str, list[dict]]] = extract_data(logger=logger, email=args.email)
+    # Extract lists from the Awesome API
+    lists: list[AwesomeList] = extract_lists(email=args.email)
 
-    # Transform data into table-keyed row mappings
-    normalized_data: dict[str, list] = transform_data(logger=logger, data=data)
+    # Transform lists into list projects
+    projects: list[ListProject] = transform_lists(data=lists, email=args.email)
 
     # Load data into the database
-    load_data(logger=logger, data=normalized_data, db=db)
-
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+    load_lists(lists=lists, projects=projects, db=db)

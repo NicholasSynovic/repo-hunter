@@ -1,149 +1,152 @@
-"""Transform Awesome API payloads into normalized table records."""
-
-from collections import defaultdict
+import re
 from json import dumps
-from logging import Logger
-from urllib.parse import unquote
+from re import Match
 
-from progress.bar import Bar
+from loguru import logger
+from requests import Response, Session
+from requests.adapters import HTTPAdapter, Retry
 
-from awesome.etl import AwesomeMention, AwesomeProject, TransformInterface
-from awesome.logger import AwesomeLogger
+from awesome import HTTP_GET_TIMEOUT
+from awesome.etl import AwesomeList, ListProject, TransformInterface
 
 
-class AwesomeTransform(TransformInterface):
-    """Transformer for Ecosyste.ms Awesome extract payloads.
-
-    Parameters
-    ----------
-    logger : AwesomeLogger
-        Application logger wrapper.
-    """
-
+class Transform(TransformInterface):
     def __init__(
         self,
-        logger: AwesomeLogger,
+        email: str,
+        per_page: int = 100,
     ) -> None:
-        """Initialize the transformer logger."""
-        self.logger: Logger = logger.get_logger()
+        self.email: str = email
+        self.per_page: int = per_page
 
-    def normalize_paper_projects(
+        # Define exponential backoff strategy
+        # backoff_factor=1 means sleep for [0s, 2s, 4s, 8s, ...] between retries
+        retry_strategy: Retry = Retry(
+            total=5,
+            backoff_factor=1,
+            status_forcelist=[403, 429, 500, 502, 503, 504],
+            allowed_methods=["HEAD", "GET"],
+        )
+
+        adapter: HTTPAdapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session: Session = Session()
+        self.session.mount(prefix="http://", adapter=adapter)
+        self.session.mount(prefix="https://", adapter=adapter)
+
+    @staticmethod
+    def _get_last_page(resp: Response) -> int:
+        # Subroutine to extract the last page number from the Link header
+        last_page: int = -1
+        pattern: str = r"[?&]page=(\d+).*?rel=\"last\""
+
+        link_last_page: str = resp.headers["link"].split(sep=",")[-1].strip()
+        match: Match[str] | None = re.search(pattern, link_last_page)
+        if match:
+            last_page = int(match.group(1))
+
+        return last_page
+
+    @staticmethod
+    def _extract_repository_url(node: dict) -> str:
+        # Top-level repository URL from a list project record
+        repository_url: str | None = node.get("repository_url")
+
+        # Fallback to the nested package repository URL
+        if repository_url is None:
+            package: dict | None = node.get("package")
+            if package is not None:
+                repository_url = package.get("repository_url")
+
+        if repository_url is not None:
+            logger.debug("Found repository url")
+            return repository_url
+
+        logger.warning("No repository url found")
+        return ""
+
+    def _fetch_list_projects(self, list_record: AwesomeList) -> list[dict]:
+        projects: list[dict] = []
+        page: int = 1
+
+        # Loop until the current page reaches the last page reported by the
+        # API's Link header
+        while True:
+            logger.debug(f"Sending GET request to {list_record.projects_url} ...")
+            resp: Response = self.session.get(
+                url=list_record.projects_url,
+                params={
+                    "page": page,
+                    "per_page": self.per_page,
+                    "mailto": self.email,
+                },
+                timeout=HTTP_GET_TIMEOUT,
+            )
+
+            # Error out of this list if the resp code is not 200
+            if resp.status_code != 200:
+                logger.error(
+                    f"GET request failed (Status {resp.status_code}): {resp.text})"
+                )
+                break
+
+            nodes: list[dict] = resp.json()
+            if not nodes:
+                break
+
+            projects.extend(nodes)
+
+            # If there is no next page, break out of the loop
+            last_page: int = self._get_last_page(resp=resp)
+            if last_page == -1 or page >= last_page:
+                logger.debug("Exiting pagination loop")
+                break
+
+            page += 1
+
+        return projects
+
+    def normalize_list_projects(
         self,
-        projects: list[dict],
-    ) -> list[AwesomeProject]:
-        """Normalize list-project payloads for ``_ecosystems_projects``.
+        lists: list[AwesomeList],
+    ) -> list[ListProject]:
+        project_id: int = 0
+        data: list[ListProject] = []
 
-        Parameters
-        ----------
-        projects : list[dict]
-            Raw list-project records returned by the Awesome API.
+        # Leverage a sieve to filter out lists
+        logger.info("Normalizing lists...")
 
-        Returns
-        -------
-        list[AwesomeProject]
-            Normalized project rows.
-        """
-        data: list[AwesomeProject] = []
+        filtered_lists: filter[AwesomeList] = filter(
+            lambda x: x.projects_url != "", lists
+        )
+        logger.debug("Filtered on `.projects_url` for project fetching")
 
-        with Bar(
-            "Normalizing projects for the `_ecosystems_projects` table... ",
-            max=len(projects),
-        ) as bar:
-            project: dict
-            for project in projects:
-                repository_url: str = ""
-                try:
-                    repository_url = project["package"]["repository_url"]
-                except TypeError:
-                    pass
+        list_record: AwesomeList
+        for list_record in filtered_lists:
+            nodes: list[dict] = self._fetch_list_projects(list_record=list_record)
 
-                datum: AwesomeProject = AwesomeProject(
-                    id=project["id"],
-                    project_url=project["project_url"],
+            node: dict
+            for node in nodes:
+                repository_url: str = self._extract_repository_url(node=node)
+
+                datum: ListProject = ListProject(
+                    id=project_id,
+                    list_id=list_record.id,
                     repository_url=repository_url,
-                    json_str=dumps(obj=project, indent=4),
+                    json_str=dumps(node),
                 )
 
                 data.append(datum)
-                bar.next()
+                project_id += 1
 
-        self.logger.info(
-            "Normalized %d issues for the `_ecosystems_projects` table",
-            len(data),
-        )
+        logger.info(f"Normalized {len(data)} list projects")
         return data
 
-    def normalize_paper_project_mentions(
-        self,
-        mentions: list[dict],
-    ) -> list[AwesomeMention]:
-        """Normalize mention-like payloads for ``_ecosystems_mentions``.
+    def transform(self, data: list[AwesomeList]) -> list[ListProject]:
+        # Build list-project mappings from the fetched lists
+        list_projects: list[ListProject] = self.normalize_list_projects(lists=data)
 
-        Parameters
-        ----------
-        mentions : list[dict]
-            Raw mention records associated with Awesome projects.
-
-        Returns
-        -------
-        list[AwesomeMention]
-            Normalized mention rows with DOI values.
-        """
-        data: list[AwesomeMention] = []
-
-        with Bar(
-            "Normalizing issues for the `_ecosystems_mentions` table... ",
-            max=len(mentions),
-        ) as bar:
-            mention: dict
-            for mention in mentions:
-                doi: str = unquote(string=mention["paper_url"].split("papers/")[1])
-
-                datum: AwesomeMention = AwesomeMention(
-                    id=mention["id"],
-                    project_url=mention["project_url"],
-                    doi=doi,
-                )
-
-                data.append(datum)
-                bar.next()
-
-        self.logger.info(
-            "Normalized %d issues for the `_ecosystems_mentions` table",
-            len(data),
+        logger.info(
+            f"Transformed {len(data)} lists into "
+            f"{len(list_projects)} list project mappings"
         )
-        return data
-
-    def transform_data(self, data: list[dict]) -> dict[str, list]:
-        """Transform extracted payload bundle into table-keyed row mappings.
-
-        Parameters
-        ----------
-        data : list[dict]
-            Extractor payload list containing ``projects`` and ``mentions``.
-
-        Returns
-        -------
-        dict[str, list]
-            Mapping from table names to normalized row dictionaries.
-        """
-        normalized_data: dict[str, list] = defaultdict(list)
-
-        def dict_tool(rows: list) -> list[dict]:
-            return [row.model_dump() for row in rows]
-
-        normalized_data["_ecosystems_projects"] = self.normalize_paper_projects(
-            projects=data[0]["projects"],
-        )
-        normalized_data["_ecosystems_mentions"] = self.normalize_paper_project_mentions(
-            mentions=data[0]["mentions"],
-        )
-
-        normalized_data["_ecosystems_projects"] = dict_tool(
-            normalized_data["_ecosystems_projects"]
-        )
-        normalized_data["_ecosystems_mentions"] = dict_tool(
-            normalized_data["_ecosystems_mentions"]
-        )
-
-        return normalized_data
+        return list_projects

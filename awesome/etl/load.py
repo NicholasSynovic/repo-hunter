@@ -1,62 +1,42 @@
-"""Load transformed Awesome records into SQLite tables."""
-
-from logging import Logger
-
+from loguru import logger
 from pandas import DataFrame
-from progress.bar import Bar
 
 from awesome.db import DB
-from awesome.etl import LoadInterface
-from awesome.logger import AwesomeLogger
+from awesome.etl import AwesomeList, ListProject, LoadInterface
 
 
-class AwesomeLoad(LoadInterface):
-    """Loader for Ecosyste.ms Awesome table payloads.
-
-    Parameters
-    ----------
-    logger : AwesomeLogger
-        Application logger wrapper.
-    db : DB
-        Database wrapper containing SQLAlchemy engine and metadata.
-    """
-
-    def __init__(self, logger: AwesomeLogger, db: DB) -> None:
-        """Initialize the loader with logger and target database."""
+class Load(LoadInterface):
+    def __init__(self, db: DB) -> None:
         self.db: DB = db
-        self.logger: Logger = logger.get_logger()
 
-    def load_data(self, data: dict[str, list]) -> bool:
-        """Write transformed records to destination tables.
+    def load_data(
+        self,
+        lists: list[AwesomeList],
+        projects: list[ListProject],
+    ) -> None:
+        logger.info(f"Writing data to {self.db._path}...")
 
-        Parameters
-        ----------
-        data : dict[str, list]
-            Mapping of table names to row dictionaries.
+        # Write Awesome lists to the `awesome_lists` table
+        lists_table: DataFrame = DataFrame(data=[row.model_dump() for row in lists])
+        lists_table.to_sql(
+            name="awesome_lists",
+            con=self.db.engine,
+            if_exists="delete_rows",
+            index=False,
+        )
+        logger.info(f"Wrote {len(lists)} lists to awesome_lists")
 
-        Returns
-        -------
-        bool
-            ``True`` when all table writes complete.
-        """
-        table_names: list[str] = list(data.keys())
+        # Write list projects to the `awesome_list_projects` table;
+        # loaded second so the foreign key to `awesome_lists.id` is satisfied
+        projects_table: DataFrame = DataFrame(
+            data=[row.model_dump() for row in projects]
+        )
+        projects_table.to_sql(
+            name="awesome_list_projects",
+            con=self.db.engine,
+            if_exists="delete_rows",
+            index=False,
+        )
+        logger.info(f"Wrote {len(projects)} list projects to awesome_list_projects")
 
-        self.logger.info("Writing data to `%s`", self.db._path)
-        with Bar(
-            f"Writing data to `{self.db._path}`... ",
-            max=len(table_names),
-        ) as bar:
-            table: str
-            for table in table_names:
-                content: DataFrame = DataFrame(data=data[table])
-                content.to_sql(
-                    name=table,
-                    con=self.db.engine,
-                    if_exists="delete_rows",
-                    index=False,
-                    index_label="_id",
-                )
-                self.logger.info("Wrote data to `%s`", table)
-                bar.next()
-
-        return True
+        logger.info(f"Wrote data to {self.db._path}")

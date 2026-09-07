@@ -1,79 +1,55 @@
-"""Database bootstrap and schema registration utilities."""
-
-# Copyright (c) 2025 Nicholas M. Synovic
-
-from logging import Logger
+import sys
 from pathlib import Path
 
+from loguru import logger
 from sqlalchemy import (
-    Boolean,
     Column,
     Engine,
+    ForeignKey,
     Integer,
     MetaData,
     String,
     Table,
     create_engine,
+    event,
 )
-
-from awesome.logger import AwesomeLogger
 
 
 class DB:
-    """
-    SQLite database wrapper used by ETL loaders.
+    def __init__(self, db_path: Path) -> None:
+        if db_path.exists() and db_path.is_file():
+            logger.error(f"{db_path.name} already exists")
+            sys.exit(1)
 
-    Parameters
-    ----------
-    logger : AwesomeLogger
-        Logger wrapper used to obtain the shared application logger.
-    db_path : Path
-        Path to the SQLite database file.
-
-    """
-
-    def __init__(self, logger: AwesomeLogger, db_path: Path) -> None:
-        """Initialize the database engine and ensure tables exist."""
-        self._path: Path = db_path.absolute()
-
+        self._path: Path = db_path
         self.engine: Engine = create_engine(url=f"sqlite:///{self._path}")
-        self.logger: Logger = logger.get_logger()
         self.metadata: MetaData = MetaData()
 
-        self._create_tables()
+        # SQLite enforces foreign keys only when this pragma is enabled per connection
+        @event.listens_for(self.engine, "connect")
+        def _enable_foreign_keys(dbapi_connection, connection_record) -> None:
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.close()
 
-    def _create_tables(self) -> None:
-        """Create all expected tables when they do not already exist."""
-        _: Table = Table(  # Table to track application runs
-            "_runs",
-            self.metadata,
-            Column("id", Integer, primary_key=True),
-            Column("subparser", String),
-            Column("started_at_unix", Integer),
-            Column("finished_at_unix", Integer),
-            Column("status", String),
-            Column("resolve_urls", Boolean),
-            Column("issues_fetched_count", Integer),
-            Column("issues_written_count", Integer),
-            Column("paper_project_rows_count", Integer),
-            Column("error_message", String),
-        )
-
+    def create_tables(self) -> None:
         _: Table = Table(
-            "_ecosystems_projects",
+            "awesome_lists",
             self.metadata,
             Column("id", Integer, primary_key=True),
-            Column("project_url", String),
+            Column("projects_url", String),
             Column("repository_url", String),
             Column("json_str", String),
         )
 
-        _: Table = Table(
-            "_ecosystems_mentions",
+        _ = Table(
+            "awesome_list_projects",
             self.metadata,
             Column("id", Integer, primary_key=True),
-            Column("project_url", String),
-            Column("doi", String),
+            Column("list_id", Integer, ForeignKey("awesome_lists.id")),
+            Column("repository_url", String),
+            Column("json_str", String),
         )
 
         self.metadata.create_all(bind=self.engine, checkfirst=True)
+        logger.info(f"Created tables in {self._path.name}")

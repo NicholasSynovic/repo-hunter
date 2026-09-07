@@ -50,6 +50,7 @@ Repository = "https://github.com/NicholasSynovic/repo-hunter"
 [project.scripts]
 rh = "rh.main:main"
 joss = "joss.main:main"
+awesome = "awesome.main:main"
 
 [tool.bandit]
 exclude_dirs = [
