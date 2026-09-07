@@ -121,7 +121,6 @@ class Extract(ExtractInterface):
 
         return JOSSGHIssue(
             id=github_issue_id,
-            is_pull_request=False,
             labels=labels_str,
             body=body,
             creator=creator,

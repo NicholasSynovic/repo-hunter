@@ -3,7 +3,6 @@ from pydantic import BaseModel
 
 class JOSSGHIssue(BaseModel):
     id: int
-    is_pull_request: bool
     labels: str
     body: str
     creator: str
@@ -13,8 +12,7 @@ class JOSSGHIssue(BaseModel):
 
 class JOSSPaperProjectIssue(BaseModel):
     id: int
-    joss_github_issue_id: int
+    github_issue_id: int
     github_repo_url: str
     joss_url: str
     joss_resolved_url: str
-    journal: str = "joss"

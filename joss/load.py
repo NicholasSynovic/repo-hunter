@@ -1,62 +1,43 @@
-"""Load transformed JOSS records into SQLite tables."""
-
-from logging import Logger
-
+from loguru import logger
 from pandas import DataFrame
-from progress.bar import Bar
 
 from joss.db import DB
 from joss.interfaces import LoadInterface
-from joss.logger import JOSSLogger
+from joss.models import JOSSGHIssue, JOSSPaperProjectIssue
 
 
-class JOSSLoad(LoadInterface):
-    """Loader for JOSS table payloads.
-
-    Parameters
-    ----------
-    joss_logger : JOSSLogger
-        Application logger wrapper.
-    db : DB
-        Database wrapper containing SQLAlchemy engine and metadata.
-    """
-
-    def __init__(self, joss_logger: JOSSLogger, db: DB) -> None:
-        """Initialize the loader with logger and target database."""
+class Load(LoadInterface):
+    def __init__(self, db: DB) -> None:
         self.db: DB = db
-        self.logger: Logger = joss_logger.get_logger()
 
-    def load_data(self, data: dict[str, list]) -> bool:
-        """Write transformed rows into destination tables.
+    def load_data(
+        self,
+        issues: list[JOSSGHIssue],
+        ppi: list[JOSSPaperProjectIssue],
+    ) -> None:
+        logger.info(f"Writing data to {self.db._path}...")
 
-        Parameters
-        ----------
-        data : dict[str, list]
-            Mapping of table names to row dictionaries.
+        # Write GitHub issues to the `joss_github_issues` table
+        issues_table: DataFrame = DataFrame(data=[i.model_dump() for i in issues])
+        issues_table.to_sql(
+            name="joss_github_issues",
+            con=self.db.engine,
+            if_exists="delete_rows",
+            index=False,
+        )
+        logger.info(f"Wrote {len(issues)} issues to joss_github_issues")
 
-        Returns
-        -------
-        bool
-            ``True`` when all table writes complete.
-        """
-        table_names: list[str] = list(data.keys())
+        # Write paper project issues to the `joss_paper_project_issues` table;
+        # loaded second so the foreign key to `joss_github_issues.id` is satisfied
+        ppi_table: DataFrame = DataFrame(data=[i.model_dump() for i in ppi])
+        ppi_table.to_sql(
+            name="joss_paper_project_issues",
+            con=self.db.engine,
+            if_exists="delete_rows",
+            index=False,
+        )
+        logger.info(
+            f"Wrote {len(ppi)} paper project issues to joss_paper_project_issues"
+        )
 
-        self.logger.info("Writing data to `%s`", self.db._path)
-        with Bar(
-            f"Writing data to `{self.db._path}`... ",
-            max=len(table_names),
-        ) as bar:
-            table: str
-            for table in table_names:
-                content: DataFrame = DataFrame(data=data[table])
-                content.to_sql(
-                    name=table,
-                    con=self.db.engine,
-                    if_exists="delete_rows",
-                    index=False,
-                    index_label="_id",
-                )
-                self.logger.info("Wrote data to `%s`", table)
-                bar.next()
-
-        return True
+        logger.info(f"Wrote data to {self.db._path}")

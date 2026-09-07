@@ -3,14 +3,15 @@ from pathlib import Path
 
 from loguru import logger
 from sqlalchemy import (
-    Boolean,
     Column,
     Engine,
+    ForeignKey,
     Integer,
     MetaData,
     String,
     Table,
     create_engine,
+    event,
 )
 
 
@@ -24,18 +25,33 @@ class DB:
         self.engine: Engine = create_engine(url=f"sqlite:///{self._path}")
         self.metadata: MetaData = MetaData()
 
+        # SQLite enforces foreign keys only when this pragma is enabled per connection
+        @event.listens_for(self.engine, "connect")
+        def _enable_foreign_keys(dbapi_connection, connection_record) -> None:
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.close()
+
     def create_tables(self) -> None:
         _: Table = Table(
-            "joss_issues",
+            "joss_github_issues",
             self.metadata,
             Column("id", Integer, primary_key=True),
-            Column("github_issue_id", Integer),
-            Column("is_pull_request", Boolean),
+            Column("labels", String),
             Column("body", String),
             Column("creator", String),
             Column("state", String),
-            Column("labels", String),
-            Column("json", String),
+            Column("json_str", String),
+        )
+
+        _ = Table(
+            "joss_paper_project_issues",
+            self.metadata,
+            Column("id", Integer, primary_key=True),
+            Column("github_issue_id", Integer, ForeignKey("joss_github_issues.id")),
+            Column("github_repo_url", String),
+            Column("joss_url", String),
+            Column("joss_resolved_url", String),
         )
 
         self.metadata.create_all(bind=self.engine, checkfirst=True)

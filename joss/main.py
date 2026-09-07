@@ -5,13 +5,15 @@ from pathlib import Path
 from joss import APPLICATION_NAME
 from joss.db import DB
 from joss.extract import Extract
+from joss.load import Load
 from joss.models import JOSSGHIssue, JOSSPaperProjectIssue
 from joss.transform import Transform
 
 
-def setup_db(db_path: Path) -> None:
+def setup_db(db_path: Path) -> DB:
     db: DB = DB(db_path=db_path)
     db.create_tables()
+    return db
 
 
 def extract_issues(github_token: str) -> list[JOSSGHIssue]:
@@ -22,6 +24,15 @@ def extract_issues(github_token: str) -> list[JOSSGHIssue]:
 def transform_issues(data: list[JOSSGHIssue]) -> list[JOSSPaperProjectIssue]:
     pipeline_step: Transform = Transform()
     return pipeline_step.transform(data=data)
+
+
+def load_issues(
+    issues: list[JOSSGHIssue],
+    ppi: list[JOSSPaperProjectIssue],
+    db: DB,
+) -> None:
+    pipeline_step: Load = Load(db=db)
+    pipeline_step.load_data(issues=issues, ppi=ppi)
 
 
 if __name__ == "__main__":
@@ -55,10 +66,13 @@ if __name__ == "__main__":
     args: Namespace = parser.parse_args()
 
     # Setup database tables
-    setup_db(db_path=args.out_file)
+    db: DB = setup_db(db_path=args.out_file)
 
     # Extract issues from GitHub
-    data: list[JOSSGHIssue] = extract_issues(github_token=args.github_token)
+    issues: list[JOSSGHIssue] = extract_issues(github_token=args.github_token)
 
     # Transform issues from GitHub
-    data: list[JOSSPaperProjectIssue] = transform_issues(data=data)
+    ppi: list[JOSSPaperProjectIssue] = transform_issues(data=issues)
+
+    # Load data into the database
+    load_issues(issues=issues, ppi=ppi, db=db)

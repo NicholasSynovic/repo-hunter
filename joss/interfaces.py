@@ -14,19 +14,9 @@ class TransformInterface(ABC):
 
 
 class LoadInterface(ABC):
-    """Interface for load-phase components."""
-
     @abstractmethod
-    def load_data(self, data: dict[str, list]) -> bool:
-        """Write transformed table payloads to a target datastore.
-
-        Parameters
-        ----------
-        data : dict[str, list]
-            Mapping of destination table names to row dictionaries.
-
-        Returns
-        -------
-        bool
-            ``True`` if the write operation completes successfully.
-        """
+    def load_data(
+        self,
+        issues: list[JOSSGHIssue],
+        ppi: list[JOSSPaperProjectIssue],
+    ) -> None: ...

@@ -1,5 +1,4 @@
 import re
-from json import loads
 from re import Match
 
 from loguru import logger
@@ -98,19 +97,9 @@ class Transform(TransformInterface):
         logger.info("Normalizing issues...")
 
         filtered_issues: filter[JOSSGHIssue] = filter(
-            lambda x: x.is_pull_request is False, issues
-        )
-        logger.debug("Filtered on `.is_pull_request`")
-
-        filtered_issues = filter(
-            lambda x: self._extract_repo_url(body=x.body), filtered_issues
+            lambda x: self._extract_repo_url(body=x.body), issues
         )
         logger.debug("Filtered on `.body` for source code project")
-
-        filtered_issues = filter(
-            lambda x: "accepted" in loads(x.labels), filtered_issues
-        )
-        logger.debug("Filtered on `accepted` label")
 
         issue: JOSSGHIssue
         for issue in filtered_issues:
@@ -129,7 +118,7 @@ class Transform(TransformInterface):
 
             datum: JOSSPaperProjectIssue = JOSSPaperProjectIssue(
                 id=paper_project_id,
-                joss_github_issue_id=issue.id,
+                github_issue_id=issue.id,
                 joss_url=joss_url,
                 joss_resolved_url=joss_resolved_url,
                 github_repo_url=github_repo_url,
