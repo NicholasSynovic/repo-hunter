@@ -2,9 +2,9 @@ import os
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
-# from joss.extract import Extract
 from joss import APPLICATION_NAME
 from joss.db import DB
+from joss.extract import Extract
 
 
 def setup_db(db_path: Path) -> None:
@@ -12,10 +12,11 @@ def setup_db(db_path: Path) -> None:
     db.create_tables()
 
 
-# def extract_issues(github_token: str) -> list[dict]:
-#     pipeline_step: Extract = Extract(github_token=github_token)
-#     return pipeline_step.extract()
-#
+def extract_issues(github_token: str) -> list[dict]:
+    pipeline_step: Extract = Extract(github_token=github_token)
+    return pipeline_step.extract()
+
+
 if __name__ == "__main__":
     github_token: str | None = os.getenv("GITHUB_TOKEN")
 
@@ -46,6 +47,8 @@ if __name__ == "__main__":
     )
     args: Namespace = parser.parse_args()
 
+    # Setup database tables
     setup_db(db_path=args.out_file)
 
     # Extract issues from GitHub
+    extract_issues(github_token=args.github_token)
