@@ -1,5 +1,5 @@
 [project]
-name = "joss"
+name = "rh"
 version = "0.2.0"
 description = "Search utility for finding source code repositories"
 authors = [{ name = "Nicholas M. Synovic", email = "nicholas.synovic@gmail.com" }]
@@ -29,7 +29,6 @@ dependencies = [
     "sqlalchemy>=2.0.46",
     "pandas>=3.0.0",
     "requests>=2.32.5",
-    "tqdm>=4.70.0",
     "loguru>=0.7.3",
 ]
 
@@ -49,8 +48,6 @@ Repository = "https://github.com/NicholasSynovic/repo-hunter"
 
 [project.scripts]
 rh = "rh.main:main"
-joss = "joss.main:main"
-awesome = "awesome.main:main"
 
 [tool.bandit]
 exclude_dirs = [

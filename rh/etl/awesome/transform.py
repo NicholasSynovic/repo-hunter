@@ -6,8 +6,9 @@ from loguru import logger
 from requests import Response, Session
 from requests.adapters import HTTPAdapter, Retry
 
-from awesome import HTTP_GET_TIMEOUT
-from awesome.etl import AwesomeList, ListProject, TransformInterface
+from rh import HTTP_GET_TIMEOUT
+from rh.etl import TransformInterface
+from rh.etl.awesome import AwesomeList, ListProject
 
 
 class Transform(TransformInterface):

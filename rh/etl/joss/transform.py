@@ -7,8 +7,9 @@ from requests.adapters import HTTPAdapter, Retry
 from requests.exceptions import RequestException
 from requests.sessions import Session
 
-from joss import HTTP_HEAD_TIMEOUT
-from joss.etl import JOSSGHIssue, JOSSPaperProjectIssue, TransformInterface
+from rh import HTTP_HEAD_TIMEOUT
+from rh.etl import TransformInterface
+from rh.etl.joss import JOSSGHIssue, JOSSPaperProjectIssue
 
 
 class Transform(TransformInterface):

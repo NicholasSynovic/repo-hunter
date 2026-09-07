@@ -1,8 +1,9 @@
 from loguru import logger
 from pandas import DataFrame
 
-from joss.db import DB
-from joss.etl import JOSSGHIssue, JOSSPaperProjectIssue, LoadInterface
+from rh.db import DB
+from rh.etl import LoadInterface
+from rh.etl.joss import JOSSGHIssue, JOSSPaperProjectIssue
 
 
 class Load(LoadInterface):

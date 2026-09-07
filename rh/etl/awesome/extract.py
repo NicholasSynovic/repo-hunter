@@ -8,8 +8,9 @@ from loguru import logger
 from requests import Response, Session
 from requests.adapters import HTTPAdapter, Retry
 
-from awesome import AWESOME_API_BASE_URL, HTTP_GET_TIMEOUT
-from awesome.etl import AwesomeList, ExtractInterface
+from rh import HTTP_GET_TIMEOUT
+from rh.etl import ExtractInterface
+from rh.etl.awesome import AWESOME_API_BASE_URL, AwesomeList
 
 
 class Extract(ExtractInterface):

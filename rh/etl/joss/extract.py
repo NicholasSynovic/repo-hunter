@@ -5,8 +5,9 @@ from json import dumps
 from loguru import logger
 from requests import Response, post
 
-from joss import GITHUB_REPO_OWNER, GITHUB_REPO_PROJECT, HTTP_POST_TIMEOUT
-from joss.etl import ExtractInterface, JOSSGHIssue
+from rh import HTTP_POST_TIMEOUT
+from rh.etl import ExtractInterface
+from rh.etl.joss import GITHUB_REPO_OWNER, GITHUB_REPO_PROJECT, JOSSGHIssue
 
 
 class Extract(ExtractInterface):

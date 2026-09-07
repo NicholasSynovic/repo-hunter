@@ -1,8 +1,9 @@
 from loguru import logger
 from pandas import DataFrame
 
-from awesome.db import DB
-from awesome.etl import AwesomeList, ListProject, LoadInterface
+from rh.db import DB
+from rh.etl import LoadInterface
+from rh.etl.awesome import AwesomeList, ListProject
 
 
 class Load(LoadInterface):
