@@ -4,10 +4,10 @@ from pathlib import Path
 
 from joss import APPLICATION_NAME
 from joss.db import DB
-from joss.extract import Extract
-from joss.load import Load
-from joss.models import JOSSGHIssue, JOSSPaperProjectIssue
-from joss.transform import Transform
+from joss.etl import JOSSGHIssue, JOSSPaperProjectIssue
+from joss.etl.extract import Extract
+from joss.etl.load import Load
+from joss.etl.transform import Transform
 
 
 def setup_db(db_path: Path) -> DB:

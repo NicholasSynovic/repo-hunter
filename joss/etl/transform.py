@@ -8,8 +8,7 @@ from requests.exceptions import RequestException
 from requests.sessions import Session
 
 from joss import HTTP_HEAD_TIMEOUT
-from joss.interfaces import TransformInterface
-from joss.models import JOSSGHIssue, JOSSPaperProjectIssue
+from joss.etl import JOSSGHIssue, JOSSPaperProjectIssue, TransformInterface
 
 
 class Transform(TransformInterface):

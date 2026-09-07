@@ -2,8 +2,7 @@ from loguru import logger
 from pandas import DataFrame
 
 from joss.db import DB
-from joss.interfaces import LoadInterface
-from joss.models import JOSSGHIssue, JOSSPaperProjectIssue
+from joss.etl import JOSSGHIssue, JOSSPaperProjectIssue, LoadInterface
 
 
 class Load(LoadInterface):
