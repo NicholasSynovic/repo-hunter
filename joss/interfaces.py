@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from joss.models import JOSSGHIssue
+from joss.models import JOSSGHIssue, JOSSPaperProjectIssue
 
 
 class ExtractInterface(ABC):
@@ -10,7 +10,7 @@ class ExtractInterface(ABC):
 
 class TransformInterface(ABC):
     @abstractmethod
-    def transform(self, data: list[dict]) -> dict[str, list]: ...
+    def transform(self, data: list[JOSSGHIssue]) -> list[JOSSPaperProjectIssue]: ...
 
 
 class LoadInterface(ABC):

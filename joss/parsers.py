@@ -6,43 +6,6 @@ from requests import head
 
 
 def parse_joss_issue(body: str) -> dict[str, str | list[str] | None]:
-    """
-    Parse JOSS issue body text into structured dictionary.
-
-    Extracts metadata fields from JOSS submission issue bodies using
-    regex patterns to match HTML comment markers and structured text.
-
-    Parameters
-    ----------
-    body : str
-        Raw issue body text from a JOSS GitHub issue.
-
-    Returns
-    -------
-    dict[str, str | list[str] | None]
-        Dictionary with the following keys:
-        - author_handle: GitHub username with @ symbol (e.g., "@username")
-        - author_name: Full name from ORCID link
-        - orcid: ORCID identifier (e.g., "0000-0000-0000-0000")
-        - repository: Target repository URL
-        - branch: Branch name containing paper.md
-        - version: Software version string
-        - editor: Assigned editor name or "Pending"
-        - reviewers: List of reviewer names (split by comma)
-        - managing_eic: Managing Editor in Chief name
-        - joss_url: JOSS paper page URL from status badge
-
-        Missing fields have None values. Empty strings are treated as None.
-
-    Examples
-    --------
-        >>> body = "**Submitting author:** <!--author-handle-->@user"
-        ... "<!--end-author-handle-->"
-        >>> result = parse_joss_issue(body)
-        >>> result["author_handle"]
-        '@user'
-
-    """
     result: dict[str, str | list[str] | None] = {}
 
     # Author handle: <!--author-handle-->@username<!--end-author-handle-->

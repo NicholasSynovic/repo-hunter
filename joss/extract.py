@@ -108,16 +108,16 @@ class Extract(ExtractInterface):
     def _normalize_node(node: dict) -> JOSSGHIssue:
         # Subroutine to extract fields from a requests.Response.json() object
         # Map fields to requested database columns
-        github_issue_id = node.get("databaseId")
-        body = node.get("body", "")
-        state = node.get("state")
-        author_obj = node.get("author")
-        creator = author_obj.get("login") if author_obj else None
+        github_issue_id: int = node.get("databaseId")
+        body: str = node.get("body", "")
+        state: str = node.get("state")
+        author_obj: dict | None = node.get("author")
+        creator: str | None = author_obj.get("login") if author_obj else None
 
         # Extract label names and serialize to string format for SQLite
-        labels_nodes = node.get("labels", {}).get("nodes", [])
-        label_names = [l["name"] for l in labels_nodes if l and "name" in l]
-        labels_str = dumps(label_names)
+        labels_nodes: list[dict] = node.get("labels", {}).get("nodes", [])
+        label_names: list[str] = [l["name"] for l in labels_nodes if l and "name" in l]
+        labels_str: str = dumps(label_names)
 
         return JOSSGHIssue(
             id=github_issue_id,

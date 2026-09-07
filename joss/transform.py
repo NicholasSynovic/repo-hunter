@@ -1,290 +1,154 @@
-"""Transform raw JOSS issue payloads into normalized table records."""
-
 import re
-from collections import defaultdict
-from json import dumps
-from logging import Logger
+from json import loads
+from re import Match
 
-from progress.bar import Bar
+from loguru import logger
+from requests import Response
 from requests.adapters import HTTPAdapter, Retry
 from requests.exceptions import RequestException
 from requests.sessions import Session
 
-from joss import HTTP_HEAD_TIMEOUT, JOSSGHIssue, JOSSPaperProjectIssue
+from joss import HTTP_HEAD_TIMEOUT
 from joss.interfaces import TransformInterface
-from joss.logger import JOSSLogger
+from joss.models import JOSSGHIssue, JOSSPaperProjectIssue
 
 
 class JOSSTransform(TransformInterface):
-    """Transformer for JOSS GitHub issue payloads.
-
-    Parameters
-    ----------
-    joss_logger : JOSSLogger
-        Application logger wrapper.
-    resolve_joss_url : bool, default=False
-        Whether to resolve each accepted paper URL via HTTP redirects.
-    """
-
     def __init__(
         self,
-        joss_logger: JOSSLogger,
         resolve_joss_url: bool = False,
     ) -> None:
-        """Initialize transformer settings and logging."""
-        self.logger: Logger = joss_logger.get_logger()
         self.resolve_joss_url: bool = resolve_joss_url
-
-    def normalize_joss_gh_issues(
-        self,
-        issues: list[dict],
-    ) -> list[JOSSGHIssue]:
-        """Normalize raw GitHub issue payloads for storage.
-
-        Parameters
-        ----------
-        issues : list[dict]
-            Raw issue payloads returned by the GitHub API.
-
-        Returns
-        -------
-        list[JOSSGHIssue]
-            Normalized issue records mapped to ``_joss_github_issues`` columns.
-        """
-        data: list[JOSSGHIssue] = []
-
-        with Bar(
-            "Normalizing issues for the `_joss_gh_issues` table... ",
-            max=len(issues),
-        ) as bar:
-            issue: dict
-            for issue in issues:
-                datum: JOSSGHIssue = JOSSGHIssue(
-                    id=issue["number"],
-                    is_pull_request="pull_request" in issue,
-                    labels=dumps(
-                        obj=[label["name"] for label in issue["labels"]],
-                    ),
-                    body=issue["body"] if isinstance(issue["body"], str) else "",
-                    creator=issue["user"]["login"],
-                    state=issue["state"],
-                    json_str=dumps(obj=issue, indent=4),
-                )
-
-                data.append(datum)
-                bar.next()
-
-        self.logger.info(
-            "Normalized %d issues for the `_joss_gh_issues` table",
-            len(data),
-        )
-        return data
 
     @staticmethod
     def _extract_repo_url(body: str) -> str:
-        """Extract repository URL from issue body text.
-
-        Parameters
-        ----------
-        body : str
-            Raw issue body text.
-
-        Returns
-        -------
-        str
-            Repository URL when present, otherwise an empty string.
-        """
-        data: str = ""
-
-        repo_match = re.search(
-            r"<!--target-repository-->(.*?)<!--end-target-repository-->",
-            body,
+        base_repo_match: Match[str] | None = re.search(
+            pattern=r"<!--target-repository-->(.*?)<!--end-target-repository-->",
+            string=body,
         )
-        data = repo_match.group(1).strip() if repo_match else ""
+        backup_repo_match: Match[str | None] = re.search(
+            pattern=r"\*\*Repository:\*\*.*?(https?://[^\s\"<>]+)",
+            string=body,
+        )
 
-        if data != "":
-            return data
+        if base_repo_match is not None:
+            logger.debug("Found repo url via base regex")
+            return base_repo_match.group(1).strip()
 
-        # This works for all other issues
-        repo_match = re.search(r"\*\*Repository:\*\*.*?(https?://[^\s\"<>]+)", body)
+        if backup_repo_match is not None:
+            logger.debug("Found repo url via backup regex")
+            return backup_repo_match.group(1).strip()
 
-        return repo_match.group(1).strip() if repo_match else ""
+        logger.warning("No repo url found")
+        return ""
 
     @staticmethod
     def _extract_joss_url(body: str) -> str:
-        """Extract the JOSS paper URL from issue status badge markdown.
-
-        Parameters
-        ----------
-        body : str
-            Raw issue body text.
-
-        Returns
-        -------
-        str
-            Parsed JOSS URL, or an empty string if missing.
-        """
         # JOSS URL from status badge: [![status](...)](URL)
-        joss_url_match = re.search(
-            r"\[!\[status\]\([^)]+\)\]\((https?://joss\.theoj\.org/papers/[^)]+)\)",
-            body,
+        joss_url_match: Match[str] | None = re.search(
+            pattern=r"\[!\[status\]\([^)]+\)\]\((https?://joss\.theoj\.org/papers/[^)]+)\)",
+            string=body,
         )
-        return joss_url_match.group(1) if joss_url_match else ""
+        if joss_url_match is not None:
+            logger.debug("Found paper status")
+            return joss_url_match.group(1)
 
-    def _resolve_joss_url(self, url: str) -> str:
-        """Resolve a JOSS URL to its final redirect target.
+        logger.warning("No paper status found")
+        return ""
 
-        Parameters
-        ----------
-        url : str
-            Source JOSS URL to resolve.
-
-        Returns
-        -------
-        str
-            Final resolved URL, or the original URL on request failure.
-        """
+    @staticmethod
+    def _resolve_joss_url(url: str) -> str:
         session: Session = Session()
 
         # Define exponential backoff strategy
         # backoff_factor=1 means sleep for [0s, 2s, 4s, 8s, ...] between retries
-        retry_strategy = Retry(
+        retry_strategy: Retry = Retry(
             total=5,
             backoff_factor=1,
             status_forcelist=[403, 429, 500, 502, 503, 504],
             allowed_methods=["HEAD", "GET"],
         )
 
-        adapter = HTTPAdapter(max_retries=retry_strategy)
-        session.mount("https://", adapter)
-        session.mount("http://", adapter)
+        adapter: HTTPAdapter = HTTPAdapter(max_retries=retry_strategy)
+        session.mount(prefix="http://", adapter=adapter)
+        session.mount(prefix="https://", adapter=adapter)
 
         try:
-            response = session.head(
-                url=url, timeout=HTTP_HEAD_TIMEOUT, allow_redirects=True
+            logger.debug(f"Sending HEAD request to {url} ...")
+            response: Response = session.head(
+                url=url,
+                timeout=HTTP_HEAD_TIMEOUT,
+                allow_redirects=True,
             )
-            # Final URL after all redirects
-            return response.url
-        except RequestException as e:
-            # Log error or return original URL
-            self.logger.info("Failed to resolve %s: %s", url, e)
-            return url
+            logger.debug(f"Resolved {url} -> {response.url}")
+            url = response.url
+        except RequestException:
+            logger.error(f"Failed to resolve {url}")
+
+        return url
 
     def normalize_joss_paper_project_issues(
-        self, issues: list[JOSSGHIssue]
+        self,
+        issues: list[JOSSGHIssue],
     ) -> list[JOSSPaperProjectIssue]:
-        """Build accepted paper mappings from normalized JOSS issues.
-
-        Parameters
-        ----------
-        issues : list[JOSSGHIssue]
-            Normalized issue rows from :meth:`normalize_joss_gh_issues`.
-
-        Returns
-        -------
-        list[JOSSPaperProjectIssue]
-            Accepted paper project mappings for
-            ``_joss_paper_project_issues``.
-        """
         paper_project_id: int = 0
         data: list[JOSSPaperProjectIssue] = []
 
-        with Bar(
-            "Normalizing issues for the `_joss_paper_project_issue_mapping` table... ",
-            max=len(issues),
-        ) as bar:
-            issue: JOSSGHIssue
-            for issue in issues:
-                if issue.is_pull_request:  # If pull request, ignore
-                    self.logger.warning(
-                        "Skipped issue #%d because it's a pull request",
-                        issue.id,
-                    )
-                    bar.next()
-                    continue
+        # Leverage a sieve to filter out issues
+        logger.info("Normalizing issues...")
 
-                # If not GitHub Repo URL is present, ignore
-                github_repo_url: str = self._extract_repo_url(
-                    body=issue.body,
-                )
-                if github_repo_url == "":
-                    self.logger.warning(
-                        "Skipped issue #%d because repository URL is present",
-                        issue.id,
-                    )
-                    bar.next()
-                    continue
-
-                joss_url: str = self._extract_joss_url(body=issue.body)
-                joss_resolved_url: str = ""
-
-                if "accepted" in issue.labels:
-                    if joss_url != "":  # Positive case, all checks pass
-                        if self.resolve_joss_url:
-                            joss_resolved_url = self._resolve_joss_url(url=joss_url)
-                    else:
-                        self.logger.warning(
-                            "Skipped issue #%d because no JOSS URL is present",
-                            issue.id,
-                        )
-                        bar.next()
-                        continue
-                else:
-                    self.logger.warning(
-                        "Skipped issue #%d because the issue is missing an `accepted` label",
-                        issue.id,
-                    )
-                    bar.next()
-                    continue
-
-                datum: JOSSPaperProjectIssue = JOSSPaperProjectIssue(
-                    id=paper_project_id,
-                    joss_github_issue_id=issue.id,
-                    joss_url=joss_url,
-                    joss_resolved_url=joss_resolved_url,
-                    github_repo_url=github_repo_url,
-                )
-
-                data.append(datum)
-                paper_project_id += 1
-                bar.next()
-
-        self.logger.info(
-            "Normalized %d issues for the `_joss_paper_project_issue_mapping` table",
-            len(data),
+        filtered_issues: filter[JOSSGHIssue] = filter(
+            lambda x: x.is_pull_request is False, issues
         )
+        logger.debug("Filtered on `.is_pull_request`")
+
+        filtered_issues = filter(
+            lambda x: self._extract_repo_url(body=x.body), filtered_issues
+        )
+        logger.debug("Filtered on `.body` for source code project")
+
+        filtered_issues = filter(
+            lambda x: "accepted" in loads(x.labels), filtered_issues
+        )
+        logger.debug("Filtered on `accepted` label")
+
+        issue: JOSSGHIssue
+        for issue in filtered_issues:
+            github_repo_url: str = self._extract_repo_url(body=issue.body)
+            joss_url: str = self._extract_joss_url(body=issue.body)
+            joss_resolved_url: str = ""
+
+            if joss_url != "":  # Positive case, all checks pass
+                if self.resolve_joss_url:
+                    joss_resolved_url = self._resolve_joss_url(url=joss_url)
+            else:
+                logger.warning(
+                    f"Skipped issue #{issue.id} because no JOSS URL is present"
+                )
+                continue
+
+            datum: JOSSPaperProjectIssue = JOSSPaperProjectIssue(
+                id=paper_project_id,
+                joss_github_issue_id=issue.id,
+                joss_url=joss_url,
+                joss_resolved_url=joss_resolved_url,
+                github_repo_url=github_repo_url,
+            )
+
+            data.append(datum)
+            paper_project_id += 1
+
+        logger.info(f"Normalized {len(data)} issues")
         return data
 
-    def transform_data(self, data: list[dict]) -> dict[str, list]:
-        """Transform extracted issue payloads into load-ready table payloads.
-
-        Parameters
-        ----------
-        data : list[dict]
-            Raw issue payloads from the extractor.
-
-        Returns
-        -------
-        dict[str, list]
-            Mapping of table names to normalized row dictionaries.
-        """
-        normalized_data: dict[str, list] = defaultdict(list)
-        dict_tool = lambda foo: [bar.model_dump() for bar in foo]
-
-        normalized_data["_joss_github_issues"] = self.normalize_joss_gh_issues(
-            issues=data,
-        )
-        normalized_data["_joss_paper_project_issues"] = (
-            self.normalize_joss_paper_project_issues(
-                issues=normalized_data["_joss_github_issues"]
-            )
+    def transform(self, data: list[JOSSGHIssue]) -> list[JOSSPaperProjectIssue]:
+        # Build paper-project mappings from the normalized issues
+        paper_project_issues: list[JOSSPaperProjectIssue] = (
+            self.normalize_joss_paper_project_issues(issues=data)
         )
 
-        normalized_data["_joss_github_issues"] = dict_tool(
-            normalized_data["_joss_github_issues"]
+        logger.info(
+            f"Transformed {len(data)} issues into "
+            f"{len(paper_project_issues)} paper project mappings"
         )
-        normalized_data["_joss_paper_project_issues"] = dict_tool(
-            normalized_data["_joss_paper_project_issues"]
-        )
-
-        return normalized_data
+        return paper_project_issues
