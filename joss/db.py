@@ -20,6 +20,7 @@ class DB:
             logger.error(f"{db_path.name} already exists")
             sys.exit(1)
 
+        self._path: Path = db_path
         self.engine: Engine = create_engine(url=f"sqlite:///{self._path}")
         self.metadata: MetaData = MetaData()
 
@@ -38,3 +39,4 @@ class DB:
         )
 
         self.metadata.create_all(bind=self.engine, checkfirst=True)
+        logger.info(f"Created tables in {self._path.name}")

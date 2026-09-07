@@ -1,11 +1,8 @@
 import os
-import sys
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
 # from joss.extract import Extract
-from loguru import logger
-
 from joss import APPLICATION_NAME
 from joss.db import DB
 
@@ -20,12 +17,6 @@ def setup_db(db_path: Path) -> None:
 #     return pipeline_step.extract()
 #
 if __name__ == "__main__":
-    logger.add(
-        sys.stdout,
-        colorize=True,
-        format="<green>{time}</green> <level>{message}</level>",
-    )
-
     github_token: str | None = os.getenv("GITHUB_TOKEN")
 
     parser: ArgumentParser = ArgumentParser(
