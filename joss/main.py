@@ -5,6 +5,8 @@ from pathlib import Path
 from joss import APPLICATION_NAME
 from joss.db import DB
 from joss.extract import Extract
+from joss.models import JOSSGHIssue, JOSSPaperProjectIssue
+from joss.transform import Transform
 
 
 def setup_db(db_path: Path) -> None:
@@ -12,13 +14,14 @@ def setup_db(db_path: Path) -> None:
     db.create_tables()
 
 
-def extract_issues(github_token: str) -> list[dict]:
-    pipeline_step: Extract = Extract(
-        github_token=github_token,
-        github_owner="NicholasSynovic",
-        github_repo="repo-hunter",
-    )
+def extract_issues(github_token: str) -> list[JOSSGHIssue]:
+    pipeline_step: Extract = Extract(github_token=github_token)
     return pipeline_step.extract()
+
+
+def transform_issues(data: list[JOSSGHIssue]) -> list[JOSSPaperProjectIssue]:
+    pipeline_step: Transform = Transform()
+    return pipeline_step.transform(data=data)
 
 
 if __name__ == "__main__":
@@ -55,4 +58,7 @@ if __name__ == "__main__":
     setup_db(db_path=args.out_file)
 
     # Extract issues from GitHub
-    extract_issues(github_token=args.github_token)
+    data: list[JOSSGHIssue] = extract_issues(github_token=args.github_token)
+
+    # Transform issues from GitHub
+    data: list[JOSSPaperProjectIssue] = transform_issues(data=data)

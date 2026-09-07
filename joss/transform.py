@@ -13,7 +13,7 @@ from joss.interfaces import TransformInterface
 from joss.models import JOSSGHIssue, JOSSPaperProjectIssue
 
 
-class JOSSTransform(TransformInterface):
+class Transform(TransformInterface):
     def __init__(
         self,
         resolve_joss_url: bool = False,
