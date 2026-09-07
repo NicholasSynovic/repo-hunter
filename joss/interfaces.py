@@ -1,39 +1,14 @@
-"""Abstract ETL interfaces shared across dataset pipelines."""
-
 from abc import ABC, abstractmethod
 
 
 class ExtractInterface(ABC):
-    """Interface for extract-phase components."""
-
     @abstractmethod
-    def download_data(self) -> list[dict]:
-        """Download raw records from an upstream source.
-
-        Returns
-        -------
-        list[dict]
-            Raw records returned by the source API.
-        """
+    def extract(self) -> list[dict]: ...
 
 
 class TransformInterface(ABC):
-    """Interface for transform-phase components."""
-
     @abstractmethod
-    def transform_data(self, data: list[dict]) -> dict[str, list]:
-        """Transform extracted records into loader-ready table payloads.
-
-        Parameters
-        ----------
-        data : list[dict]
-            Raw or partially normalized records from an extractor.
-
-        Returns
-        -------
-        dict[str, list]
-            Mapping of destination table names to row dictionaries.
-        """
+    def transform(self, data: list[dict]) -> dict[str, list]: ...
 
 
 class LoadInterface(ABC):
