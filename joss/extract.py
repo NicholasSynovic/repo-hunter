@@ -7,6 +7,7 @@ from requests import Response, post
 
 from joss import GITHUB_REPO_OWNER, GITHUB_REPO_PROJECT, HTTP_POST_TIMEOUT
 from joss.interfaces import ExtractInterface
+from joss.models import JOSSGHIssue
 
 
 class Extract(ExtractInterface):
@@ -104,7 +105,7 @@ class Extract(ExtractInterface):
         )
 
     @staticmethod
-    def _normalize_node(node: dict) -> dict:
+    def _normalize_node(node: dict) -> JOSSGHIssue:
         # Subroutine to extract fields from a requests.Response.json() object
         # Map fields to requested database columns
         github_issue_id = node.get("databaseId")
@@ -118,21 +119,23 @@ class Extract(ExtractInterface):
         label_names = [l["name"] for l in labels_nodes if l and "name" in l]
         labels_str = dumps(label_names)
 
-        return {
-            "github_issue_id": github_issue_id,
-            "body": body,
-            "creator": creator,
-            "state": state,
-            "labels": labels_str,
-        }
+        return JOSSGHIssue(
+            id=github_issue_id,
+            is_pull_request=False,
+            labels=labels_str,
+            body=body,
+            creator=creator,
+            state=state,
+            json_str=dumps(node),
+        )
 
-    def extract(self) -> list[dict]:
+    def extract(self) -> list[JOSSGHIssue]:
         # If the POST requests have not been made and responses collected, run
         if len(self.responses) == 0:
             self.recursive_query_graphql()
 
         # Create an empty list to store data
-        data: list[dict] = []
+        data: list[JOSSGHIssue] = []
 
         # Create a Generator of lists of nodes from each requests.Response.json object
         nodes_generator: Generator = (
@@ -141,9 +144,10 @@ class Extract(ExtractInterface):
         )
 
         # For each list of nodes, normalize the content and write to a dictionary
-        logger.info("Normalizing GraphQL responses...")
+        logger.info("Extracting GitHub issues...")
         nodes: list[dict]
         for nodes in nodes_generator:
             data.extend(map(self._normalize_node, nodes))
 
+        logger.info(f"Extracted {len(data)} GitHub issues")
         return data

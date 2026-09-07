@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
 
+from joss.models import JOSSGHIssue
+
 
 class ExtractInterface(ABC):
     @abstractmethod
-    def extract(self) -> list[dict]: ...
+    def extract(self) -> list[JOSSGHIssue]: ...
 
 
 class TransformInterface(ABC):

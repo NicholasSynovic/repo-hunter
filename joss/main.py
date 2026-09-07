@@ -13,7 +13,11 @@ def setup_db(db_path: Path) -> None:
 
 
 def extract_issues(github_token: str) -> list[dict]:
-    pipeline_step: Extract = Extract(github_token=github_token)
+    pipeline_step: Extract = Extract(
+        github_token=github_token,
+        github_owner="NicholasSynovic",
+        github_repo="repo-hunter",
+    )
     return pipeline_step.extract()
 
 
