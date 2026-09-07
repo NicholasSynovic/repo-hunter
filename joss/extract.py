@@ -2,19 +2,24 @@ from collections.abc import Generator
 from json import dumps
 
 from requests import Response, post
+from tqdm import tqdm
 
 from joss import GITHUB_REPO_OWNER, GITHUB_REPO_PROJECT, HTTP_POST_TIMEOUT
+from joss.interfaces import ExtractInterface
+from joss.logger import JOSSLogger
 
 
-class Extract:
+class Extract(ExtractInterface):
     def __init__(
         self,
         github_token: str,
+        logger: JOSSLogger,
         github_owner: str = GITHUB_REPO_OWNER,
         github_repo: str = GITHUB_REPO_PROJECT,
     ) -> None:
         self.responses: list[Response] = []
         self.api_endpoint: str = "https://api.github.com/graphql"
+        self.logger: JOSSLogger = JOSSLogger()
 
         self.static_variables: dict[str, str | None] = {
             "owner": github_owner,
@@ -59,8 +64,12 @@ class Extract:
         return (page_info["hasNextPage"], page_info["endCursor"])
 
     def recursive_query_graphql(
-        self, cursor: str | None = None, has_next_page: bool = True
+        self,
+        cursor: str | None = None,
+        has_next_page: bool = True,
     ) -> None:
+        if cursor is None:
+            self.logger.info("Querying GitHub GraphQL issue endpoint...")
         # If there is no next page, break out of the recursion tree
         if has_next_page is False:
             return
@@ -70,6 +79,7 @@ class Extract:
         self.static_variables["cursor"] = cursor
 
         # Make the HTTP POST request
+        self.logger.debug("POST: %s", cursor)
         resp: Response = post(
             url=self.api_endpoint,
             json={"query": self.query, "variables": self.static_variables},
@@ -90,7 +100,10 @@ class Extract:
         has_next_page, cursor = self._get_resp_page_information(resp=resp)
 
         # Run the recursion again with updated parameters
-        self.recursive_query_graphql(cursor=cursor, has_next_page=has_next_page)
+        self.recursive_query_graphql(
+            cursor=cursor,
+            has_next_page=has_next_page,
+        )
 
     def extract(self) -> list[dict]:
         # Subroutine to extract fields from a requests.Response.json() object
@@ -130,7 +143,11 @@ class Extract:
 
         # For each list of nodes, normalize the content and write to a dictionary
         nodes: list[dict]
-        for nodes in nodes_generator:
+        for nodes in tqdm(
+            iterable=nodes_generator,
+            desc="Normalizing JOSS review responses... ",
+            unit=" responses",
+        ):
             data.extend(map(_normalize_node, nodes))
 
         return data
