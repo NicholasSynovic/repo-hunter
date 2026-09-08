@@ -3,6 +3,7 @@ from pathlib import Path
 
 from loguru import logger
 from sqlalchemy import (
+    Boolean,
     Column,
     Engine,
     ForeignKey,
@@ -60,6 +61,13 @@ class DB:
                 "awesome_lists",
                 self.metadata,
                 Column("id", Integer, primary_key=True),
+                Column("url", String),
+                Column("name", String),
+                Column("description", String),
+                Column("projects_count", Integer),
+                Column("stars", Integer),
+                Column("primary_language", String),
+                Column("list_of_lists", Boolean),
                 Column("projects_url", String),
                 Column("repository_url", String),
                 Column("json_str", String),

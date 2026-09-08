@@ -25,7 +25,7 @@ class Transform(TransformInterface):
         retry_strategy: Retry = Retry(
             total=5,
             backoff_factor=1,
-            status_forcelist=[403, 429, 500, 502, 503, 504],
+            status_forcelist=[402, 403, 429, 500, 502, 503, 504],
             allowed_methods=["HEAD", "GET"],
         )
 
@@ -35,30 +35,28 @@ class Transform(TransformInterface):
         self.session.mount(prefix="https://", adapter=adapter)
 
     @staticmethod
-    def _get_last_page(resp: Response) -> int:
-        # Subroutine to extract the last page number from the Link header
-        last_page: int = -1
-        pattern: str = r"[?&]page=(\d+).*?rel=\"last\""
+    def _get_next_page(resp: Response) -> int:
+        # Subroutine to extract the next page number from the Link header
+        next_page: int = -1
+        url_pattern: str = r"<([^>]*)>;\s*rel=\"next\""
+        page_pattern: str = r"[?&]page=(\d+)"
 
-        link_last_page: str = resp.headers["link"].split(sep=",")[-1].strip()
-        match: Match[str] | None = re.search(pattern, link_last_page)
-        if match:
-            last_page = int(match.group(1))
+        link_header: str = resp.headers.get("link", "")
+        link_match: Match[str] | None = re.search(url_pattern, link_header)
+        if link_match is not None:
+            page_match: Match[str] | None = re.search(page_pattern, link_match.group(1))
+            if page_match is not None:
+                next_page = int(page_match.group(1))
 
-        return last_page
+        return next_page
 
     @staticmethod
     def _extract_repository_url(node: dict) -> str:
-        # Top-level repository URL from a list project record
-        repository_url: str | None = node.get("repository_url")
+        # Nested repository record; nil when the project is not synced yet
+        repository: dict = node.get("repository") or {}
+        repository_url: str = repository.get("html_url") or ""
 
-        # Fallback to the nested package repository URL
-        if repository_url is None:
-            package: dict | None = node.get("package")
-            if package is not None:
-                repository_url = package.get("repository_url")
-
-        if repository_url is not None:
+        if repository_url != "":
             logger.debug("Found repository url")
             return repository_url
 
@@ -69,8 +67,7 @@ class Transform(TransformInterface):
         projects: list[dict] = []
         page: int = 1
 
-        # Loop until the current page reaches the last page reported by the
-        # API's Link header
+        # Loop until the API's Link header reports no next page
         while True:
             logger.debug(f"Sending GET request to {list_record.projects_url} ...")
             resp: Response = self.session.get(
@@ -97,8 +94,8 @@ class Transform(TransformInterface):
             projects.extend(nodes)
 
             # If there is no next page, break out of the loop
-            last_page: int = self._get_last_page(resp=resp)
-            if last_page == -1 or page >= last_page:
+            next_page: int = self._get_next_page(resp=resp)
+            if next_page == -1 or page >= next_page:
                 logger.debug("Exiting pagination loop")
                 break
 

@@ -34,7 +34,7 @@ class Extract(ExtractInterface):
         retry_strategy: Retry = Retry(
             total=10,
             backoff_factor=1,
-            status_forcelist=[403, 429, 500, 502, 503, 504],
+            status_forcelist=[402, 403, 429, 500, 502, 503, 504],
             allowed_methods=["HEAD", "GET", "OPTIONS", "POST"],
         )
 
@@ -51,20 +51,23 @@ class Extract(ExtractInterface):
         self.session.headers.update(self.headers)
 
     @staticmethod
-    def _get_last_page(resp: Response) -> int:
-        # Subroutine to extract the last page number from the Link header
-        last_page: int = -1
-        pattern: str = r"[?&]page=(\d+).*?rel=\"last\""
+    def _get_next_page(resp: Response) -> int:
+        # Subroutine to extract the next page number from the Link header
+        next_page: int = -1
+        url_pattern: str = r"<([^>]*)>;\s*rel=\"next\""
+        page_pattern: str = r"[?&]page=(\d+)"
 
-        link_last_page: str = resp.headers["link"].split(sep=",")[-1].strip()
-        match: Match[str] | None = re.search(pattern, link_last_page)
-        if match:
-            last_page = int(match.group(1))
+        link_header: str = resp.headers.get("link", "")
+        link_match: Match[str] | None = re.search(url_pattern, link_header)
+        if link_match is not None:
+            page_match: Match[str] | None = re.search(page_pattern, link_match.group(1))
+            if page_match is not None:
+                next_page = int(page_match.group(1))
 
-        return last_page
+        return next_page
 
     def _fetch_all_lists(self) -> None:
-        # Loop until the current page reaches the last page reported by the
+        # Loop until the current page reaches the next page reported by the
         # API's Link header
         while True:
             logger.info(f"Sending GET request: page {self.static_variables['page']}")
@@ -85,8 +88,8 @@ class Extract(ExtractInterface):
             self.responses.append(resp)
 
             # If there is no next page, break out of the loop
-            last_page: int = self._get_last_page(resp=resp)
-            if last_page == -1 or self.static_variables["page"] >= last_page:
+            next_page: int = self._get_next_page(resp=resp)
+            if next_page == -1 or self.static_variables["page"] >= next_page:
                 logger.debug("Exiting pagination loop")
                 break
 
@@ -98,10 +101,29 @@ class Extract(ExtractInterface):
         # Map fields to requested database columns
         list_id: int = node.get("id", -1)
         projects_url: str = node.get("projects_url", "")
-        repository_url: str = node.get("repository_url", "")
+
+        # The API can emit explicit nulls, so fall back to safe defaults
+        url: str = node.get("url") or ""
+        name: str = node.get("name") or ""
+        description: str = node.get("description") or ""
+        projects_count: int = node.get("projects_count") or 0
+        list_of_lists: bool = node.get("list_of_lists") or False
+        primary_language: str | None = node.get("primary_language")
+
+        # Nested repository record; nil when the list has not been synced yet
+        repository: dict = node.get("repository") or {}
+        repository_url: str = repository.get("html_url") or ""
+        stars: int = repository.get("stargazers_count") or 0
 
         return AwesomeList(
             id=list_id,
+            url=url,
+            name=name,
+            description=description,
+            projects_count=projects_count,
+            stars=stars,
+            primary_language=primary_language,
+            list_of_lists=list_of_lists,
             projects_url=projects_url,
             repository_url=repository_url,
             json_str=dumps(node),
