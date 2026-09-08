@@ -24,10 +24,12 @@ datasets of open-source software projects:
 
 ## Features
 
-- **JOSS review tracker**: collect all Journal of Open Source Software review issues.
-- **Ecosyste.ms Papers**: collect project and mention data from the Ecosyste.ms Papers API.
-- **Ecosyste.ms Awesome**: collect list and project data from the Ecosyste.ms Awesome API.
-- **GitHub repository search**: query GitHub for repositories matching configurable thresholds.
+- **JOSS review tracker**: collect all Journal of Open Source Software review
+  issues from the GitHub GraphQL API.
+- **Ecosyste.ms Awesome**: collect Awesome lists and every project they
+  reference.
+- **Identical pipelines**: both datasets run the same extract, transform, and
+  load steps into a local SQLite database.
 
 ## Getting started
 
@@ -60,6 +62,10 @@ Show top-level help:
 rh --help
 ```
 
+> [!NOTE]
+> The output file passed to `-o` must not already exist; the tool exits
+> rather than overwrite a database.
+
 ### `rh joss`
 
 Collects Journal of Open Source Software review issues.
@@ -67,28 +73,18 @@ Collects Journal of Open Source Software review issues.
 Options:
 
 - `-o, --out-file` (required): SQLite database path to write results to.
-- `--resolve-urls` (optional): resolve JOSS paper URLs to final redirected URLs.
+- `-g, --github-token`: classic GitHub Personal Access Token. Required unless
+  the `GITHUB_TOKEN` environment variable is set.
+- `--resolve-urls` (optional): resolve JOSS paper URLs to their final
+  redirected URLs. Can take a while.
 
 ```bash
-rh joss --out-file data/joss.db --resolve-urls
-```
-
-### `rh papers`
-
-Collects project and mention data from the Ecosyste.ms Papers API.
-
-Options:
-
-- `-o, --out-file` (required): SQLite database path to write results to.
-- `--email` (required): contact email passed as the API `mailto` parameter.
-
-```bash
-rh papers --out-file data/papers.db --email you@example.com
+rh joss --out-file data/joss.db
 ```
 
 ### `rh awesome`
 
-Collects list and project data from the Ecosyste.ms Awesome API.
+Collects Ecosyste.ms Awesome lists and their projects.
 
 Options:
 
@@ -99,30 +95,13 @@ Options:
 rh awesome --out-file data/awesome.db --email you@example.com
 ```
 
-### `rh gh`
-
-Searches for GitHub repositories matching configurable numeric thresholds.
-
-Options (all optional, default `-1`, which disables the filter):
-
-- `--star-count`: minimum stars.
-- `--fork-count`: minimum forks.
-- `--watcher-count`: minimum watchers.
-- `--issue-count`: minimum issues.
-- `--age-months`: maximum repository age in months.
-- `--pr-count`: minimum pull requests.
-
-```bash
-rh gh --star-count 500 --fork-count 100
-```
-
 > [!NOTE]
-> `rh gh` currently executes the search query and reports the number of
-> matching repositories; saving results to a database is not implemented yet.
+> The awesome transform fetches projects for every list, so a full run makes
+> thousands of requests and can take a while.
 
 > [!IMPORTANT]
-> `rh joss` and `rh gh` query GitHub, so they require a classic GitHub
-> Personal Access Token in the environment:
+> `rh joss` queries GitHub, so it requires a classic GitHub Personal Access
+> Token via `-g` or the environment:
 
 ```bash
 export GITHUB_TOKEN="ghp_your_classic_token_here"
@@ -149,17 +128,21 @@ Run checks on only changed files:
 pre-commit run --files <file1> <file2>
 ```
 
-Run the tests:
-
-```bash
-uv run pytest
-```
+> [!NOTE]
+> The prettier hook runs from your system PATH, so commits fail if
+> `prettier` is not installed. Pre-commit also only checks git-tracked files;
+> untracked files are silently skipped until `git add`ed.
 
 ## Project structure
 
 - `rh/` — the Python package and `rh` CLI entry point.
-- `analysis/` — matplotlib/seaborn scripts for plotting JOSS issue data.
-- `scripts/` — helpers for collecting GitHub repository URLs and cloning them.
+- `rh/main.py` — CLI dispatch for the `joss` and `awesome` subcommands.
+- `rh/db.py` — SQLite wrapper shared by both pipelines.
+- `rh/etl/__init__.py` — the shared Extract/Transform/Load interfaces.
+- `rh/etl/joss/` — the JOSS pipeline: pydantic models in `__init__.py`, plus
+  `extract`, `transform`, and `load` steps.
+- `rh/etl/awesome/` — the Awesome pipeline, a deliberate structural mirror of
+  the JOSS pipeline.
 
 ## License
 
